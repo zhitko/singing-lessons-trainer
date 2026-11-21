@@ -89,7 +89,9 @@ application.log
 .*/
 stories/
 build_appimage/
-data/
+# Runtime recordings. Bundled lessons in data/patterns (including Cyrillic
+# names and Sound Forge .sfk sidecars) are tracked.
+data/records/
 android/assets/
 *.log
 docs/*.docx

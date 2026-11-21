@@ -1,9 +1,10 @@
 # Play Console screenshots
 
-Android captures on the public **Intonation Trainer 2 (Chinese)** listing:
+These captures are from the other product, Intonation Trainer 2 (Chinese),
 https://play.google.com/store/apps/details?id=by.intoncore.intontrainer2.zh
+Do not upload them for Singing Lessons Trainer. Recapture this app before any Play submission. The phone list below still shows one-tone phrase screens from that other product.
 
-Do not use the desktop images in `docs/screenshots/`.
+Do not use the desktop images in `docs/screenshots/` as Play phone screenshots.
 
 Light theme, English UI, portrait. Each folder has the same six screens.
 Filenames are `N_screen_name.png` and match the phone listing order.

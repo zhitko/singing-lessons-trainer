@@ -49,7 +49,7 @@ Page {
             spacing: AppScale.px(8)
 
             Label {
-                text: qsTr("Intonation Trainer 2 uses open-source software. Select an item to read its complete licence and notices.")
+                text: qsTr("Singing Lessons Trainer uses open-source software. Select an item to read its complete licence and notices.")
                 wrapMode: Text.Wrap
                 color: Theme.onSurface(Material.theme)
                 Layout.fillWidth: true
@@ -72,7 +72,7 @@ Page {
                 path: "../../licenses/THIRD_PARTY_NOTICES.md"
             },
             {
-                title: qsTr("Intonation Trainer 2 source"),
+                title: qsTr("Singing Lessons Trainer source"),
                 subtitle: qsTr("MIT License"),
                 path: "../../LICENSE"
             },

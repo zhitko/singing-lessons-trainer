@@ -52,6 +52,10 @@ Page {
     // ── User results ─────────────────────────────────────────────────────
     property var    userUMP:                   null
     property double shapeSimilarity:           0
+    // Mean tonal error times 100. Shown only after a comparison in this session
+    // (historical similarity has no stored error).
+    property double tonalErrorPercent:         0
+    property bool   hasTonalError:             false
     property var    previousShapeSimilarities: []
 
     property var userVadA:     []
@@ -780,6 +784,8 @@ Page {
             if (dpResult.minFinalCost >= distanceLimit) {
                 Logger.info("Recording skipped: DTW distance (" + dpResult.minFinalCost + ") >= limit (" + distanceLimit + ")");
                 root.userUMP = null;
+                root.hasTonalError = false;
+                root.tonalErrorPercent = 0;
                 umpGraph.waveData = root.referenceUMP.ump;
                 umpGraph.cuePoints = root.referenceUMP.cuePoints;
                 return;
@@ -818,11 +824,16 @@ Page {
             window.settingsApi.useOnlyN
         );
         var newShapeSimilarity = cmp.shapeSimilarity || 0;
+        // meanTonalError is the power mean on the normalized curves; the
+        // screen shows that mean times 100. p comes from settings.
+        var newTonalErrorPercent = (cmp.meanTonalError || 0) * 100;
 
         if (root.shapeSimilarity > 0) {
             root.previousShapeSimilarities = [Math.round(root.shapeSimilarity)].concat(root.previousShapeSimilarities).slice(0, 5);
         }
         root.shapeSimilarity = newShapeSimilarity;
+        root.tonalErrorPercent = newTonalErrorPercent;
+        root.hasTonalError = true;
 
         root.userVadA = trainingAudioApi.getVadA();
         root.userVadU = trainingAudioApi.getVadU();
@@ -886,67 +897,86 @@ Page {
                     shadowVerticalOffset: 6
                 }
 
-                // Card title — hidden on narrow screens so the score stays centered
-                Text {
-                    id: cardTitle
-                    anchors {
-                        verticalCenter: currentResultColumn.verticalCenter
-                        left: parent.left
-                        leftMargin: root.isCompact ? 12 : 24
-                    }
-                    visible: shapeSimilarityCard.width >= 520
-                    text: qsTr("Similarity")
-                    font.pixelSize: AppScale.fs(24)
-                    font.weight: 600
-                    color: Theme.onSecondaryContainer(root.Material.theme)
-                    opacity: 0.55
-                }
-
-                // Current result — centered
-                Column {
+                // Similarity, then the tonal-error percent immediately to its right.
+                Row {
                     id: currentResultColumn
                     anchors.centerIn: parent
-                    spacing: 0
+                    spacing: root.isCompact ? 16 : 28
 
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        text: Math.round(root.shapeSimilarity) + "%"
-                        font.pixelSize: AppScale.fs(root.isCompact ? 28 : 38)
-                        font.weight: 700
-                        color: Theme.primary(root.Material.theme)
+                    Column {
+                        spacing: 0
 
-                        Behavior on text {
-                            SequentialAnimation {
-                                NumberAnimation {
-                                    target: currentResultColumn
-                                    property: "scale"
-                                    from: 1.0
-                                    to: 1.12
-                                    duration: 120
-                                    easing.type: Easing.OutQuad
-                                }
-                                NumberAnimation {
-                                    target: currentResultColumn
-                                    property: "scale"
-                                    from: 1.12
-                                    to: 1.0
-                                    duration: 180
-                                    easing.type: Easing.OutBack
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: qsTr("Similarity")
+                            font.pixelSize: AppScale.fs(root.isCompact ? 11 : 13)
+                            font.weight: 600
+                            color: Theme.onSecondaryContainer(root.Material.theme)
+                            opacity: 0.7
+                        }
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: Math.round(root.shapeSimilarity) + "%"
+                            font.pixelSize: AppScale.fs(root.isCompact ? 28 : 38)
+                            font.weight: 700
+                            color: Theme.primary(root.Material.theme)
+
+                            Behavior on text {
+                                SequentialAnimation {
+                                    NumberAnimation {
+                                        target: currentResultColumn
+                                        property: "scale"
+                                        from: 1.0
+                                        to: 1.12
+                                        duration: 120
+                                        easing.type: Easing.OutQuad
+                                    }
+                                    NumberAnimation {
+                                        target: currentResultColumn
+                                        property: "scale"
+                                        from: 1.12
+                                        to: 1.0
+                                        duration: 180
+                                        easing.type: Easing.OutBack
+                                    }
                                 }
                             }
                         }
+
+                        // Trend indicator: show delta vs most recent previous result
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            visible: root.previousShapeSimilarities.length > 0
+                            property int delta: root.previousShapeSimilarities.length > 0 ? Math.round(root.shapeSimilarity) - root.previousShapeSimilarities[0] : 0
+                            text: delta > 0 ? ("▲ +" + delta + "%") : (delta < 0 ? ("▼ " + delta + "%") : "● 0%")
+                            font.pixelSize: AppScale.fs(12)
+                            font.weight: 600
+                            color: delta > 0 ? "#4caf50" : (delta < 0 ? "#ef5350" : Theme.onSecondaryContainer(root.Material.theme))
+                            opacity: 0.85
+                        }
                     }
 
-                    // Trend indicator: show delta vs most recent previous result
-                    Text {
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        visible: root.previousShapeSimilarities.length > 0
-                        property int delta: root.previousShapeSimilarities.length > 0 ? Math.round(root.shapeSimilarity) - root.previousShapeSimilarities[0] : 0
-                        text: delta > 0 ? ("▲ +" + delta + "%") : (delta < 0 ? ("▼ " + delta + "%") : "● 0%")
-                        font.pixelSize: AppScale.fs(12)
-                        font.weight: 600
-                        color: delta > 0 ? "#4caf50" : (delta < 0 ? "#ef5350" : Theme.onSecondaryContainer(root.Material.theme))
-                        opacity: 0.85
+                    Column {
+                        visible: root.hasTonalError
+                        spacing: 0
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: qsTr("Error")
+                            font.pixelSize: AppScale.fs(root.isCompact ? 11 : 13)
+                            font.weight: 600
+                            color: Theme.onSecondaryContainer(root.Material.theme)
+                            opacity: 0.7
+                        }
+
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: Math.round(root.tonalErrorPercent) + "%"
+                            font.pixelSize: AppScale.fs(root.isCompact ? 28 : 38)
+                            font.weight: 700
+                            color: Theme.primary(root.Material.theme)
+                        }
                     }
                 }
 

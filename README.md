@@ -1,8 +1,8 @@
 # Singing Lessons Trainer
 
-**Singing Lessons Trainer** version 0.1.0 is a cross-platform desktop (and Android) application for singing lessons. It is a renamed copy of Inton@Trainer 2.0 so it can be installed beside Inton Trainer 2. It records your voice, compares your pitch contour against a reference recording using Constrained Dynamic Time Warping (CDTW), and gives you an instant similarity score — so you can hear, see, and track how closely your melody matches the target.
+**Singing Lessons Trainer** version 0.1.0 is a desktop and Android application for singing practice. Authors: Vladimir Zhitko and Boris Lobanov. The bundled lessons are vocal exercises and short song fragments recorded by vocal teachers. You listen, sing the same line, and the app draws both pitch curves. It scores melodic similarity and a mean tonal error.
 
-Designed for language learners, phonetics students, speech therapists, and researchers who need objective, repeatable feedback on intonation patterns.
+The audio engine was taken from Inton Trainer 2 and renamed so this app can be installed beside it. The lesson set, the default settings, and the texts in this repository are for singing, not for that other product.
 
 Install identity (distinct from Inton Trainer 2):
 
@@ -22,11 +22,11 @@ No prebuilt packages are published yet.
 
 The application works on a **template-based training** model:
 
-1. A **reference WAV file** (template) represents the target intonation pattern — e.g. a native speaker's recording of a sentence.
-2. You **record yourself** speaking the same phrase.
-3. The app **aligns** your recording to the template using constrained DTW across multiple configurable acoustic streams (pitch, pitch derivative, log pitch, amplitude, amplitude derivative, spectrum, cepstrum).
-4. It computes a **Unified Melodic Profile (UMP)** — a normalized pitch contour — for both recordings and compares their shapes.
-5. You get a **similarity score (0–100%)** with a trend indicator showing whether you're improving.
+1. A **reference WAV file** is a vocal exercise or a short song fragment sung by a vocal teacher. The bundled set is in `data/patterns` (Singing exercises, Some songs examples, Examples of singing). Some WAV files have a sibling `.sfk` Sound Forge peak file; the app does not read `.sfk` and trains on the WAV, including any cue labels stored in the WAV.
+2. You **sing** the same line.
+3. The app **aligns** your recording to the reference using constrained DTW across multiple configurable acoustic streams (pitch, pitch derivative, log pitch, amplitude, amplitude derivative, spectrum, cepstrum).
+4. It computes a **Unified Melodic Profile (UMP)** — a normalized pitch contour — for both recordings.
+5. You get **melodic similarity** (Pearson correlation, 0–100%) and a **mean tonal error**. The error is the power mean of the absolute per-sample difference on those same aligned curves, exponent `p` (default 3, `tonalErrorPower` in `settings.ini`). The screen shows that mean times 100, immediately after similarity. Boris Lobanov's exact formula picture was lost and this reading still needs his confirmation.
 
 ---
 
@@ -55,15 +55,15 @@ Tapping **Start Training** navigates to the **Template Categories** browser:
 Selecting a template opens the **Training Page**:
 
 **Automatic recording mode (VAD)**
-- Recording starts immediately and automatically. You speak the phrase, then go silent — the app detects the end of speech via Voice Activity Detection (VAD) and stops the recording on its own.
-- While you speak, a live **waveform visualizer** (symmetric bar graph around a pulsing dot) shows your microphone input in real time. Bars use a logarithmic scale to make quiet sounds visible and peaks expressive.
+- Recording starts immediately and automatically. You sing the line, then go silent — the app detects the end of the phrase via Voice Activity Detection (VAD) and stops the recording on its own.
+- While you sing, a live **waveform visualizer** (symmetric bar graph around a pulsing dot) shows your microphone input in real time. Bars use a logarithmic scale to make quiet sounds visible and peaks expressive.
 - After each utterance the app processes your recording and immediately shows the result, then restarts listening for the next attempt — a seamless, hands-free loop.
 - A **Pause / Continue** button lets you temporarily suspend the recording loop (e.g. to listen to the reference or check graphs) without leaving the page.
 
 **Guided ("Play & Listen") mode**
 - An alternative to Auto mode, enabled in Settings. The training flow becomes a step-by-step cycle: press play → hear the reference → a short delay → the app opens a timed "listen window" → speak the phrase → the recording is automatically stopped and processed.
 - A large play button (with redo icon on timeout) replaces the continuous VAD loop controls.
-- If no speech is detected within the configurable **Listen Window Timeout**, the app returns to idle and lets you try again.
+- If no singing is detected within the configurable **Listen Window Timeout**, the app returns to idle and lets you try again.
 - The **Post-Playback Delay** setting controls the pause between the end of reference playback and microphone activation.
 - You can switch between Auto and Guided at any time; pending recordings are cancelled cleanly.
 
@@ -71,10 +71,10 @@ Selecting a template opens the **Training Page**:
 - When auto-stop is disabled, a **Record button** appears. Tap once to start, tap again to stop. Useful for controlled environments or when VAD mis-fires.
 
 **Result display**
-- A **Similarity card** at the top shows your current score as a large percentage with an animated scale-bounce on update.
+- A **score card** at the top shows similarity and, after a take, the tonal-error percent immediately to its right. The similarity number bounces when it updates.
 - A **trend indicator** (▲/▼/●) shows delta versus your immediately previous attempt.
 - Up to **5 recent historical scores** are shown fading out to the right — closest result largest, oldest smallest — giving you an at-a-glance improvement curve.
-- The **UMP graph** plots the reference pitch contour (red) and your aligned contour (dark red) together, so you can visually compare the melody shape.
+- The **pitch graph** plots the reference contour in red (`#d62728`) and your aligned contour in dark brown (`#83270b`). Those colors, the green nucleus bands, and the light plot background are the same in the Light and Dark themes. The Dark theme keeps a light chart panel so the curves stay readable.
 
 **Playback controls**
 - **Play Reference** — listen to the reference recording while pausing the recording loop.

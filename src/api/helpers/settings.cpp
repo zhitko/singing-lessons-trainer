@@ -136,6 +136,7 @@ Settings::loadSettings()
     qsettings.beginGroup("General");
     settings.language = qsettings.value("language", QString("ru")).toString().toStdString();
     settings.languageTitle = qsettings.value("languageTitle", QString("Русский")).toString().toStdString();
+    settings.tonalErrorPower = qsettings.value("tonalErrorPower", 3.0).toDouble();
     settings.theme = qsettings.value("theme", QString("light")).toString().toStdString();
     settings.fontSizeMultiplier = qsettings.value("fontSizeMultiplier", 1.0).toDouble();
     settings.primaryColor = qsettings.value("primaryColor", QString("blue")).toString().toStdString();
@@ -267,6 +268,7 @@ void Settings::saveSettings(const AppSettings& settings)
     qsettings.beginGroup("General");
     qsettings.setValue("language", QString::fromStdString(settings.language));
     qsettings.setValue("languageTitle", QString::fromStdString(settings.languageTitle));
+    qsettings.setValue("tonalErrorPower", settings.tonalErrorPower);
     qsettings.setValue("theme", QString::fromStdString(settings.theme));
     qsettings.setValue("fontSizeMultiplier", settings.fontSizeMultiplier);
     qsettings.setValue("primaryColor", QString::fromStdString(settings.primaryColor));

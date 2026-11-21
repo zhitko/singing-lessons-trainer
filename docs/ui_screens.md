@@ -1,4 +1,6 @@
-# Intonation Trainer 2 — User Interface Screens
+# Singing Lessons Trainer — User Interface Screens
+
+Singing Lessons Trainer is the singing-practice app: a vocal-teacher reference, the user's take, pitch curves, melodic similarity, and mean tonal error. This note describes the screens in the current QML, not an older intonation-training product.
 
 This document summarizes the current QML UI flow of the app as it exists in the codebase today. It intentionally focuses on the screens and controls that are currently in active use, rather than historical or experimental layouts.
 

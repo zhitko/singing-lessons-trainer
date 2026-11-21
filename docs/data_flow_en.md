@@ -1,8 +1,8 @@
-# How IntonTrainer processes audio
+# How Singing Lessons Trainer processes audio
 
 Russian version: [data_flow_ru.md](data_flow_ru.md).
 
-This note is for readers familiar with speech signal processing. It describes the transformations applied to the reference sample and to each user attempt, from the waveform to the similarity score. Typical default parameters are given; all of them can be changed in Settings.
+This note is for readers familiar with speech signal processing. It describes the transformations Singing Lessons Trainer applies to a vocal-teacher reference and to each sung attempt, from the waveform to the similarity score and the mean tonal error. Typical default parameters are given; all of them can be changed in Settings.
 
 Capture is **8 kHz, mono, 16-bit PCM**.
 
@@ -225,17 +225,23 @@ flowchart LR
     Ncut --> Corr["Pearson correlation"]
     Keep --> Corr
     Corr --> Out3["Shape similarity, 0 to 100 percent"]
+    Ncut --> Err["Power mean of absolute differences"]
+    Keep --> Err
+    Err --> Out4["Tonal error percent = mean x 100"]
 ```
 
-Let `u` and `r` be the two UMP vectors, and `p` the Pearson correlation between them.
+Let `u` and `r` be the two UMP vectors, and `p` the Pearson correlation between them. The tonal error uses those same samples:
+
+`M_p = (mean_i |r_i - u_i|^p) ^ (1/p)` with `p = 3` unless `tonalErrorPower` says otherwise.
 
 | Quantity | Definition |
 |----------|------------|
-| Shape similarity (the training score) | `max(0, p) * 100` — anti-correlated shapes score 0, never a negative number |
+| Shape similarity | `max(0, p) * 100` — anti-correlated shapes score 0, never a negative number |
+| Mean tonal error | `M_p` on the same samples. The screen shows `M_p * 100` immediately after similarity |
 | Range of each profile | `(max - min) / F0 band * 100`, clamped at 100 |
 | Range similarity | `100 - abs(range_r - range_u)`, clamped at 0 |
 
-The number on the training screen is **shape similarity**. Range figures are diagnostic.
+The training screen shows **shape similarity** and, after a take in the current session, the **tonal error percent**. Range figures are diagnostic. The exact error formula still needs Boris Lobanov's confirmation; the picture in his notes was lost.
 
 ---
 

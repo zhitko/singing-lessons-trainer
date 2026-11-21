@@ -21,6 +21,14 @@ Column {
     property var thresholdValue: null
     property color thresholdColor: Theme.error(Material.theme)
 
+    // Chart ink is the Light theme's, in both themes. The plot itself is a
+    // light panel so the Dark theme chart stays readable and the curves
+    // (and the green nucleus bands) match the Light theme exactly.
+    readonly property color chartPlotBackground: "#F9F9FF"
+    readonly property color chartNucleus: "#4CAF50"
+    readonly property color chartPause: "#ffffff"
+    readonly property color chartInk: "#74777F"
+
     Canvas {
         id: canvas
         width: parent.width
@@ -141,6 +149,11 @@ Column {
                 return scaledX + leftMargin;
             }
 
+            // Light plot panel in both themes. Cue bands and curves are drawn
+            // on top of this, so their colors no longer depend on the page.
+            ctx.fillStyle = root.chartPlotBackground;
+            ctx.fillRect(leftMargin, topPadding, graphWidth, graphHeight);
+
             function scaleY(y, datasetIndex) {
                 // If independentScale is enabled and a datasetIndex is provided,
                 // scale using that dataset's min/max Y range; otherwise use global range.
@@ -163,7 +176,7 @@ Column {
             }
 
             // Draw Y axis
-            ctx.strokeStyle = Theme.outline(Material.theme);
+            ctx.strokeStyle = root.chartInk;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(leftMargin, topPadding);
@@ -232,17 +245,17 @@ Column {
                 var width = scaleX(cue.position + cue.length) - x;
 
                 if (cue.label.toUpperCase().startsWith("P")) {
-                    ctx.fillStyle = Qt.alpha(Theme.harmonize('#ffffff', Material.theme), 0.5);
-                    ctx.strokeStyle = Theme.outline(Material.theme);
+                    ctx.fillStyle = Qt.alpha(root.chartPause, 0.5);
+                    ctx.strokeStyle = root.chartInk;
                 } else if (cue.label.toUpperCase().startsWith("N")) {
-                    ctx.fillStyle = Qt.alpha(Theme.harmonize("#4CAF50", Material.theme), 0.5);
-                    ctx.strokeStyle = Theme.outline(Material.theme);
+                    ctx.fillStyle = Qt.alpha(root.chartNucleus, 0.5);
+                    ctx.strokeStyle = root.chartInk;
                 } else if (cue.label.toUpperCase().startsWith("T")) {
-                    ctx.fillStyle = Qt.alpha(Theme.harmonize('#ffffff', Material.theme), 0.5);
-                    ctx.strokeStyle = Theme.outline(Material.theme);
+                    ctx.fillStyle = Qt.alpha(root.chartPause, 0.5);
+                    ctx.strokeStyle = root.chartInk;
                 } else {
-                    ctx.fillStyle = Qt.alpha(Theme.harmonize("#ffffff", Material.theme), 0.1);
-                    ctx.strokeStyle = Theme.outline(Material.theme);
+                    ctx.fillStyle = Qt.alpha(root.chartPause, 0.1);
+                    ctx.strokeStyle = root.chartInk;
                 }
 
                 // Draw rectangle

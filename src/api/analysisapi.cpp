@@ -1,5 +1,7 @@
 #include "analysisapi.h"
 #include "helpers/logger.h"
+#include "helpers/settings.h"
+#include "src/services/helpers/tonalerror.h"
 #include "src/services/helpers/vectorutils.h"
 #include "src/services/umpservice.h"
 #include <QPointF>
@@ -89,17 +91,25 @@ QVariantMap AnalysisApi::compareUMP(const QVariantList& referenceUmp,
         }
     }
 
-    UMPComparison cmp = UMPService::compareUMP(refVec, userVec, fullMin, fullMax);
+    // p is General/tonalErrorPower. Missing or invalid values use the cubic mean.
+    const AppSettings settings = Settings::loadSettings();
+    const double tonalErrorPower = settings.tonalErrorPower > 0.0
+        ? settings.tonalErrorPower
+        : kDefaultTonalErrorPower;
+    UMPComparison cmp = UMPService::compareUMP(refVec, userVec, fullMin, fullMax, tonalErrorPower);
 
     out["referenceRange"] = cmp.referenceRange;
     out["userRange"] = cmp.userRange;
     out["rangeSimilarity"] = cmp.rangeSimilarity;
     out["shapeSimilarity"] = cmp.shapeSimilarity;
+    out["meanTonalError"] = cmp.meanTonalError;
 
     LOG_DEBUG() << "Finish: AnalysisApi::compareUMP - refRange="
                 << cmp.referenceRange << ", userRange=" << cmp.userRange
                 << ", rangeSim=" << cmp.rangeSimilarity
-                << ", shapeSim=" << cmp.shapeSimilarity;
+                << ", shapeSim=" << cmp.shapeSimilarity
+                << ", meanTonalError=" << cmp.meanTonalError
+                << ", p=" << tonalErrorPower;
 
     return out;
 }

@@ -78,7 +78,7 @@ Page {
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.Wrap
-                    text: qsTr("Master Your Intonation")
+                    text: qsTr("Sing after the reference")
                     font.pixelSize: AppScale.fs(root.shortHome ? 15 : 17)
                     font.weight: Font.Medium
                     color: Theme.onSurfaceVariant(Material.theme)

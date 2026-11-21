@@ -2,7 +2,9 @@
 
 Package id: `by.intoncore.singinglessonstrainer`. Native library: `libappsinging-lessons-trainer_<abi>.so`. Launcher name: Singing Lessons Trainer. `versionName` `0.1.0`, `versionCode` 1. This id is distinct from Inton Trainer 2 (`by.intoncore.intontrainer2`) and cannot change after the first Play upload.
 
-Build the CMake target `appsinging-lessons-trainer`. The release history below the versioning section still describes upstream Inton Trainer 2 (Chinese); do not reuse that package id or those Play listings.
+Build the CMake target `appsinging-lessons-trainer`. The release history below the versioning section describes the other product, Inton Trainer 2 (Chinese). Do not reuse that package id, those Play listings, or that privacy-policy URL. The listing for this app is `packaging/google-play/store-listing.md`. This app is not on Google Play.
+
+Lesson files under `data/patterns` keep Boris Lobanov's folder names and file names, including Cyrillic and Belarusian. CMake copies that tree into `android/assets` with `copy_directory`. Do not transliterate those names: the app opens the WAV files by the names it finds on disk. Sibling `.sfk` files are Sound Forge peak sidecars. The app does not parse them; they are packaged only so the lesson tree stays intact. WAV cue and label chunks inside the WAV files are what the trainer reads.
 
 ## Release versioning (git tags)
 
@@ -570,49 +572,43 @@ sources (or durable, unambiguous access to those exact upstream sources).
 
 ## Privacy policy
 
-Public HTTPS policy (required for Play Console, Data safety, and the
-User Data policy):
+Singing Lessons Trainer has no published HTTPS privacy URL. Do not paste
+[https://intontrainer.by/intontrainer2policy.html](https://intontrainer.by/intontrainer2policy.html):
+that page is the other product.
 
-[https://intontrainer.by/intontrainer2policy.html](https://intontrainer.by/intontrainer2policy.html)
+The notice for this app is bundled in `docs/privacy_policy_en.md` and
+`docs/privacy_policy_ru.md` (updated 21 November 2026). `PrivacyPolicyPage.qml`
+loads it the same way as the user guide. The side menu shows **Privacy Policy**
+between User Guide and Open-source licences. The APK has no `INTERNET`
+permission, so the page does not fetch a URL.
 
-Last updated **10 September 2026**. It matches the Android packaging:
+What that notice matches in the Android packaging:
 
-- microphone used only for on-device intonation training;
+- microphone used only to record a sung take on the device;
 - WAV recordings, scores, and settings stored in app-private storage;
 - no upload, analytics, ads, accounts, or cloud backup;
 - `RECORD_AUDIO` only; Qt `INTERNET` stripped;
 - `android:allowBackup="false"`;
-- user can delete individual records, all records, or user data in Settings.
-
-Paste that URL into the Play Console privacy-policy field.
-
-The same notice is bundled offline in `docs/privacy_policy_en.md` and
-`docs/privacy_policy_ru.md`. `PrivacyPolicyPage.qml` loads it like the
-user guide (language follows Settings). The side menu exposes
-**Privacy Policy** between User Guide and Open-source licences. The
-APK has no `INTERNET` permission, so the page does not fetch the URL
-at runtime.
+- the user can delete individual records, or delete user data (statistics and recordings) in Settings.
 
 ---
 
 ## Google Play store listing
 
-The Chinese edition is live:
+Singing Lessons Trainer is not on Google Play. Paste-ready English and Russian
+copy for this package is `packaging/google-play/store-listing.md`. Folder
+index: `packaging/google-play/README.md`. Default locale is **English (United
+States)**; add **Russian** as a translation. Do not put rankings, prices,
+“free”, or keyword stuffing in any field.
+
+The tables under this heading are a historical record of the other product,
+Intonation Trainer 2 (Chinese), package `by.intoncore.intontrainer2.zh`:
 
 https://play.google.com/store/apps/details?id=by.intoncore.intontrainer2.zh
 
-Paste-ready copy lives in `packaging/google-play/store-listing.md`. Folder
-index: `packaging/google-play/README.md`. Use those files when editing the
-listing or preparing the next tagged upload.
-
-Default locale is **English (United States)**; add **Russian** as a
-translation. Do not put rankings, prices, “free”, or keyword stuffing in
-any field.
-
-This is the **Chinese** edition (`by.intoncore.intontrainer2.zh`). Later
-language apps should keep the same bracket pattern
-(`Intonation Trainer 2 (English)`, `(Russian)`, `(German)`) and ship as
-separate Play listings with packages `.en`, `.ru`, `.de`.
+Do not paste them into a Singing Lessons Trainer listing, and do not upload
+this app under that package. Icon art and the captures in
+`packaging/google-play/screenshots/` are still that other product.
 
 | Field | English | Russian | Limit |
 |---|---|---|---|
@@ -641,8 +637,14 @@ Do not upload the desktop captures in `docs/screenshots/`.
 
 ## Google Play readiness
 
-Requirements checked against the official Google Play and Android
-documentation on **13 September 2026**.
+This checklist is the status of the upstream Inton Trainer 2 Chinese edition
+at the time that tree was copied. It is not the status of Singing Lessons
+Trainer. This app is version 0.1.0 / `versionCode` 1, it is not on Google Play,
+and it must not reuse package `by.intoncore.intontrainer2.zh` or that edition's
+privacy URL. Listing text for this app is `packaging/google-play/store-listing.md`.
+
+Requirements below were checked against the official Google Play and Android
+documentation on **13 September 2026** for that other package.
 
 ### Done in the repo
 
