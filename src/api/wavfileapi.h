@@ -45,6 +45,12 @@ public slots:
      */
     Q_INVOKABLE QVariantList getCuePoints(WaveFile* waveFile);
 
+    // Shared training preprocessing for reference and performance. Nucleus-only
+    // selection is applied by AnalysisApi after alignment, never asymmetrically.
+    Q_INVOKABLE QVariantList getScoringPitch(WaveFile* waveFile);
+    Q_INVOKABLE QVariantMap getScoringUMP(const QVariantList& pitch,
+        const QVariantList& referenceCuePoints, int referenceWaveSize);
+
     /**
      * Retrieves the audio data from the given WaveFile object and returns it as
      * a QVariantList. The audio data can be normalized if the normalized

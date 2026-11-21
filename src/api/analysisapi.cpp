@@ -55,8 +55,8 @@ QVariantMap AnalysisApi::compareUMP(const QVariantList& referenceUmp,
             if (pos >= length) {
                 continue;
             }
-            unsigned int end = std::min(static_cast<unsigned int>(length), pos + len);
-            for (unsigned int i = pos; i < end; ++i) {
+            const size_t end = pos + std::min(length - pos, static_cast<size_t>(len));
+            for (size_t i = pos; i < end; ++i) {
                 mask[i] = true;
             }
         }
@@ -65,6 +65,12 @@ QVariantMap AnalysisApi::compareUMP(const QVariantList& referenceUmp,
 
     std::vector<double> refVec = toVector(referenceUmp);
     std::vector<double> userVec = toVector(userUmp);
+
+    // Reject mismatched timelines before masking; truncation could hide a
+    // failed alignment and make an incomplete take look valid.
+    if (refVec.empty() || refVec.size() != userVec.size()) {
+        return {{"valid", false}};
+    }
 
     if (useOnlyN) {
         std::vector<bool> refMask = buildNucleusMask(referenceCuePoints, refVec.size());
@@ -85,9 +91,11 @@ QVariantMap AnalysisApi::compareUMP(const QVariantList& referenceUmp,
                 userVec.swap(userNucleus);
             } else {
                 LOG_WARNING() << "compareUMP: useOnlyN=true but no matching NUCLEUS frames found";
+                return {{"valid", false}};
             }
         } else {
             LOG_WARNING() << "compareUMP: useOnlyN=true but cue point metadata is missing";
+            return {{"valid", false}};
         }
     }
 
@@ -97,6 +105,11 @@ QVariantMap AnalysisApi::compareUMP(const QVariantList& referenceUmp,
         ? settings.tonalErrorPower
         : kDefaultTonalErrorPower;
     UMPComparison cmp = UMPService::compareUMP(refVec, userVec, fullMin, fullMax, tonalErrorPower);
+
+    out["valid"] = cmp.valid;
+    if (!cmp.valid) {
+        return out;
+    }
 
     out["referenceRange"] = cmp.referenceRange;
     out["userRange"] = cmp.userRange;

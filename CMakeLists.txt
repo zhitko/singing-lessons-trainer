@@ -121,8 +121,11 @@ target_include_directories(appsinging-lessons-trainer PRIVATE
 )
 
 # alglib: AVX2/FMA/SSE2 kernels are x86-only; skip them on ARM Android
+# Share the numerical implementation with the scoring regression executable.
+add_library(singing_alglib STATIC)
+set_target_properties(singing_alglib PROPERTIES POSITION_INDEPENDENT_CODE ON AUTOMOC OFF)
 if(ANDROID)
-    target_sources(appsinging-lessons-trainer PRIVATE
+    target_sources(singing_alglib PRIVATE
         3rdparty/alglib-cpp/src/alglibinternal.cpp
         3rdparty/alglib-cpp/src/alglibmisc.cpp
         3rdparty/alglib-cpp/src/ap.cpp
@@ -139,7 +142,7 @@ if(ANDROID)
         3rdparty/alglib-cpp/src/statistics.cpp
     )
 else()
-    target_sources(appsinging-lessons-trainer PRIVATE
+    target_sources(singing_alglib PRIVATE
         3rdparty/alglib-cpp/src/alglibinternal.cpp
         3rdparty/alglib-cpp/src/alglibmisc.cpp
         3rdparty/alglib-cpp/src/ap.cpp
@@ -159,6 +162,8 @@ else()
         3rdparty/alglib-cpp/src/statistics.cpp
     )
 endif()
+
+target_link_libraries(appsinging-lessons-trainer PRIVATE singing_alglib)
 
 set(SPTK_BUILD_COMMANDS OFF CACHE BOOL "Build SPTK commands" FORCE)
 add_subdirectory(3rdparty/SPTK)
@@ -346,6 +351,41 @@ else()
 endif()
 
 add_dependencies(appsinging-lessons-trainer copy_runtime_resources)
+
+include(CTest)
+if(BUILD_TESTING AND NOT ANDROID)
+    add_executable(tonal_error_test tests/tonal_error/tonal_error_test.cpp)
+    add_test(NAME tonal_error COMMAND tonal_error_test)
+
+    add_executable(scoring_regression
+        tests/scoring/scoring_regression.cpp
+        src/api/analysisapi.cpp
+        src/api/wavfileapi.cpp
+        src/api/helpers/settings.cpp
+        src/services/wavfileservice.cpp
+        src/services/pitchservice.cpp
+        src/services/specservice.cpp
+        src/services/amplitudeservice.cpp
+        src/services/umpservice.cpp
+        src/services/dpservice.cpp
+        src/services/cdtwservice.cpp
+        src/services/helpers/wavFile.cpp
+        src/services/helpers/vectorutils.cpp
+        src/services/helpers/vectorutils_normalization.cpp
+        src/services/helpers/vectorutils_interpolation.cpp
+        src/services/helpers/vectorutils_smoothing.cpp
+        src/mingw_libstdcxx_compat.cpp
+    )
+    target_include_directories(scoring_regression PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/api
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/services
+        ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/alglib-cpp/src
+    )
+    target_link_libraries(scoring_regression PRIVATE Qt6::Core sptk singing_alglib OpenMP::OpenMP_CXX)
+    add_test(NAME scoring_regression COMMAND scoring_regression ${CMAKE_CURRENT_SOURCE_DIR})
+    set_tests_properties(scoring_regression PROPERTIES TIMEOUT 180)
+endif()
 
 include(GNUInstallDirs)
 install(TARGETS appsinging-lessons-trainer

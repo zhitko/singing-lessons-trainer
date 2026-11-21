@@ -29,7 +29,7 @@ UMPResult UMPService::getUMP(const std::string& interpolationType,
 
     const int pitchSize = pitch.size();
 
-    if (pitch.empty() || cuePoints.empty() || pLength <= 0 || nLength <= 0 || tLength <= 0 || pitchSize <= 0) {
+    if (pitch.empty() || cuePoints.empty() || pLength <= 0 || nLength <= 0 || tLength <= 0 || waveDataSize <= 0) {
         LOG_WARNING() << "  Early return due to invalid input";
         UMPResult emptyOut;
         return emptyOut;
@@ -42,14 +42,6 @@ UMPResult UMPService::getUMP(const std::string& interpolationType,
 
     std::vector<CuePointData> processedCuePoints;
     processedCuePoints.push_back(cuePoints[0]);
-
-    // Ensure we have at least 3 cue points to avoid underflow
-    if (cuePoints.size() < 3) {
-        processedCuePoints.push_back(cuePoints.back());
-        UMPResult emptyOut;
-        emptyOut.processedCuePoints = processedCuePoints;
-        return emptyOut;
-    }
 
     for (int i = 1; i < static_cast<int>(cuePoints.size()) - 1; ++i) {
         const CuePointData& cuePoint = cuePoints[i];
@@ -97,7 +89,10 @@ UMPResult UMPService::getUMP(const std::string& interpolationType,
                           << ", label: " << cuePoint.label;
         }
     }
-    processedCuePoints.push_back(cuePoints.back());
+    // A single region is a complete lesson too; do not duplicate its only cue.
+    if (cuePoints.size() > 1) {
+        processedCuePoints.push_back(cuePoints.back());
+    }
     // -----------------------
 
     // Now we should extract segments for each cue point and interpolate them to
@@ -196,6 +191,9 @@ UMPResult UMPService::getUMP(const std::string& interpolationType,
                 int zeroEnd = i; // exclusive
 
                 // Determine boundary values
+                if (zeroStart == 0 && zeroEnd == sz) {
+                    break; // No voiced samples to interpolate from.
+                }
                 double leftVal  = (zeroStart > 0) ? interpolatedResult[zeroStart - 1] : interpolatedResult[zeroEnd];
                 double rightVal = (zeroEnd   < sz) ? interpolatedResult[zeroEnd]       : interpolatedResult[zeroStart - 1];
 
@@ -244,10 +242,14 @@ UMPComparison UMPService::compareUMP(const std::vector<double>& referenceUmp,
     double fullMin, double fullMax,
     double tonalErrorPower)
 {
-    UMPComparison result = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+    UMPComparison result {};
 
     // Validate inputs
-    if (referenceUmp.empty() || userUmp.empty() || referenceUmp.size() != userUmp.size() || fullMin >= fullMax) {
+    const auto finite = [](double value) { return std::isfinite(value); };
+    if (referenceUmp.empty() || userUmp.empty() || referenceUmp.size() != userUmp.size()
+        || !finite(fullMin) || !finite(fullMax) || fullMin >= fullMax
+        || !std::all_of(referenceUmp.begin(), referenceUmp.end(), finite)
+        || !std::all_of(userUmp.begin(), userUmp.end(), finite)) {
         LOG_WARNING() << "compareUMP: Invalid input - reference size="
                       << referenceUmp.size() << ", user size=" << userUmp.size()
                       << ", fullMin=" << fullMin << ", fullMax=" << fullMax;
@@ -286,6 +288,7 @@ UMPComparison UMPService::compareUMP(const std::vector<double>& referenceUmp,
     // Same samples as the correlation above (already aligned, and already
     // restricted to nucleus frames when the caller asked for that).
     result.meanTonalError = meanAbsolutePower(referenceUmp, userUmp, tonalErrorPower);
+    result.valid = std::isfinite(result.meanTonalError) && std::isfinite(result.shapeSimilarity);
 
     LOG_DEBUG() << "compareUMP completed: refRange=" << result.referenceRange
                 << "%, userRange=" << result.userRange

@@ -32,10 +32,7 @@ Page {
     title: titleText
 
     // Shorthand computed accessors for repeated index→string lookups
-    readonly property string pitchInterpolationName: settingsApi ? ["None", "Linear", "Cubic", "Akima", "Monotone"][window.settingsApi.pitchInterpolationType] : "None"
-    readonly property string pitchSmoothingName:     settingsApi ? ["None", "MovingAverage", "Median", "Gaussian", "Spline"][window.settingsApi.pitchSmoothing]    : "None"
     readonly property string amplitudeSmoothingName: settingsApi ? ["None", "MovingAverage", "Median", "Gaussian"][window.settingsApi.amplitudeSmoothing]           : "None"
-    readonly property string umpSmoothingName:       settingsApi ? ["None", "MovingAverage", "Median", "Gaussian", "Spline"][window.settingsApi.umpSmoothing]       : "None"
 
     // ── Reference audio data ───────────────────────────────────────────────
     property var referenceUMP:                null
@@ -52,6 +49,7 @@ Page {
     // ── User results ─────────────────────────────────────────────────────
     property var    userUMP:                   null
     property double shapeSimilarity:           0
+    property bool   hasSimilarityScore:        false
     // Mean tonal error times 100. Shown only after a comparison in this session
     // (historical similarity has no stored error).
     property double tonalErrorPercent:         0
@@ -455,6 +453,7 @@ Page {
             // Set current similarity to the latest result if no new recording yet
             if (root.shapeSimilarity === 0) {
                 root.shapeSimilarity = results[results.length - 1];
+                root.hasSimilarityScore = true;
             }
         }
     }
@@ -482,24 +481,7 @@ Page {
         referenceWaveData  = wavFileApi.getWaveData(referenceWavFileHandle);
 
         // ── Pitch ───────────────────────────────────────────────────────────
-        referencePitchData = wavFileApi.getPitch(
-            referenceWavFileHandle,
-            window.settingsApi.algorithm,
-            window.settingsApi.frameShift,
-            window.settingsApi.sampleRate,
-            window.settingsApi.minF0,
-            window.settingsApi.maxF0,
-            window.settingsApi.voicingThreshold,
-            "PITCH",
-            window.settingsApi.pitchNormalization,
-            pitchInterpolationName,
-            pitchSmoothingName,
-            window.settingsApi.pitchSmoothingWindowSize,
-            window.settingsApi.pitchGaussianSmoothingSigma,
-            window.settingsApi.pitchSplineSmoothingPenalty,
-            true,
-            window.settingsApi.useOnlyN
-        );
+        referencePitchData = wavFileApi.getScoringPitch(referenceWavFileHandle);
         Logger.debug("Reference pitch frames: " + referencePitchData.length);
 
         // Log pitch — only when dpUsePitchLog or dpUsePitchLogAsMask is active
@@ -513,8 +495,7 @@ Page {
                 window.settingsApi.minF0,
                 window.settingsApi.maxF0,
                 window.settingsApi.voicingThreshold,
-                "LOG_F0", "None", "None", 0, 0, 0,
-                window.settingsApi.useOnlyN
+                "LOG_F0", "None", "None", "None", 0, 0, 0
             );
             Logger.debug("Reference log pitch frames: " + referenceLogPitchData.length);
         } else {
@@ -567,18 +548,10 @@ Page {
         }
 
         // ── UMP ───────────────────────────────────────────────────────────
-        root.referenceUMP = wavFileApi.getUMP(
+        root.referenceUMP = wavFileApi.getScoringUMP(
             referencePitchData,
             referenceCuePoints,
-            50, 100, 50,
-            referenceWaveData.length,
-            pitchInterpolationName,
-            umpSmoothingName,
-            window.settingsApi.umpSmoothingWindowSize,
-            window.settingsApi.umpGaussianSmoothingSigma,
-            window.settingsApi.umpSplineSmoothingPenalty,
-            true,
-            false
+            referenceWaveData.length
         );
         umpGraph.waveData  = root.referenceUMP.ump;
         umpGraph.cuePoints = root.referenceUMP.cuePoints;
@@ -622,6 +595,15 @@ Page {
         }
     }
 
+    function invalidateComparison() {
+        root.userUMP = null;
+        root.hasSimilarityScore = false;
+        root.hasTonalError = false;
+        root.tonalErrorPercent = 0;
+        umpGraph.waveData = root.referenceUMP ? root.referenceUMP.ump : [];
+        umpGraph.cuePoints = root.referenceUMP ? root.referenceUMP.cuePoints : [];
+    }
+
     function updateUserUMP(fileFullPath, isMicrophoneRecording) {
         Logger.info("Updating user UMP for file: " + fileFullPath + " isMicrophone: " + isMicrophoneRecording);
 
@@ -631,23 +613,13 @@ Page {
         let userWaveData = wavFileApi.getWaveData(userWavFileHandle);
 
         // ── Pitch ───────────────────────────────────────────────────────────
-        let userPitchData = wavFileApi.getPitch(
-            userWavFileHandle,
-            window.settingsApi.algorithm,
-            window.settingsApi.frameShift,
-            window.settingsApi.sampleRate,
-            window.settingsApi.minF0,
-            window.settingsApi.maxF0,
-            window.settingsApi.voicingThreshold,
-            "PITCH",
-            window.settingsApi.pitchNormalization,
-            pitchInterpolationName,
-            pitchSmoothingName,
-            window.settingsApi.pitchSmoothingWindowSize,
-            window.settingsApi.pitchGaussianSmoothingSigma,
-            window.settingsApi.pitchSplineSmoothingPenalty
-        );
+        let userPitchData = wavFileApi.getScoringPitch(userWavFileHandle);
         Logger.debug("Pitch data frames: " + userPitchData.length);
+
+        if (!root.referenceUMP || !root.referenceUMP.ump.length || !userPitchData.length) {
+            invalidateComparison();
+            return;
+        }
 
         // Log pitch — only when dpUsePitchLog or dpUsePitchLogAsMask is active
         let userLogPitchData = [];
@@ -783,30 +755,22 @@ Page {
                 ? window.settingsApi.dtwDistanceLimit : Infinity;
             if (dpResult.minFinalCost >= distanceLimit) {
                 Logger.info("Recording skipped: DTW distance (" + dpResult.minFinalCost + ") >= limit (" + distanceLimit + ")");
-                root.userUMP = null;
-                root.hasTonalError = false;
-                root.tonalErrorPercent = 0;
-                umpGraph.waveData = root.referenceUMP.ump;
-                umpGraph.cuePoints = root.referenceUMP.cuePoints;
+                invalidateComparison();
                 return;
             }
         }
         let scaledPitch = dpResult.pitch;
+        if (!scaledPitch || !scaledPitch.length) {
+            invalidateComparison();
+            return;
+        }
         Logger.debug("DP result pitch length: " + scaledPitch.length);
 
         Logger.debug("Calculating UMP...");
-        root.userUMP = wavFileApi.getUMP(
-            scaledPitch, 
-            referenceCuePoints, 
-            50, 100, 50, 
-            referenceWaveData.length, 
-            pitchInterpolationName, 
-            umpSmoothingName, 
-            window.settingsApi.umpSmoothingWindowSize, 
-            window.settingsApi.umpGaussianSmoothingSigma, 
-            window.settingsApi.umpSplineSmoothingPenalty, 
-            true,
-            window.settingsApi.useOnlyN
+        root.userUMP = wavFileApi.getScoringUMP(
+            scaledPitch,
+            referenceCuePoints,
+            referenceWaveData.length
         );
         Logger.debug("UMP calculated with " + root.userUMP.cuePoints.length + " cue points");
 
@@ -823,15 +787,20 @@ Page {
             window.settingsApi.maxF0,
             window.settingsApi.useOnlyN
         );
-        var newShapeSimilarity = cmp.shapeSimilarity || 0;
+        if (!cmp.valid || !isFinite(cmp.shapeSimilarity) || !isFinite(cmp.meanTonalError)) {
+            invalidateComparison();
+            return;
+        }
+        var newShapeSimilarity = cmp.shapeSimilarity;
         // meanTonalError is the power mean on the normalized curves; the
         // screen shows that mean times 100. p comes from settings.
-        var newTonalErrorPercent = (cmp.meanTonalError || 0) * 100;
+        var newTonalErrorPercent = cmp.meanTonalError * 100;
 
         if (root.shapeSimilarity > 0) {
             root.previousShapeSimilarities = [Math.round(root.shapeSimilarity)].concat(root.previousShapeSimilarities).slice(0, 5);
         }
         root.shapeSimilarity = newShapeSimilarity;
+        root.hasSimilarityScore = true;
         root.tonalErrorPercent = newTonalErrorPercent;
         root.hasTonalError = true;
 
@@ -917,7 +886,7 @@ Page {
 
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: Math.round(root.shapeSimilarity) + "%"
+                            text: root.hasSimilarityScore ? Math.round(root.shapeSimilarity) + "%" : "—"
                             font.pixelSize: AppScale.fs(root.isCompact ? 28 : 38)
                             font.weight: 700
                             color: Theme.primary(root.Material.theme)
@@ -947,7 +916,7 @@ Page {
                         // Trend indicator: show delta vs most recent previous result
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            visible: root.previousShapeSimilarities.length > 0
+                            visible: root.hasSimilarityScore && root.previousShapeSimilarities.length > 0
                             property int delta: root.previousShapeSimilarities.length > 0 ? Math.round(root.shapeSimilarity) - root.previousShapeSimilarities[0] : 0
                             text: delta > 0 ? ("▲ +" + delta + "%") : (delta < 0 ? ("▼ " + delta + "%") : "● 0%")
                             font.pixelSize: AppScale.fs(12)

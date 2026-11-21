@@ -684,6 +684,26 @@ QVariantList WavFileApi::getPitch(
     return pitchData;
 }
 
+QVariantList WavFileApi::getScoringPitch(WaveFile* waveFile)
+{
+    const auto s = Settings::loadSettings();
+    return getPitch(waveFile, QString::fromStdString(s.algorithm), s.frameShift,
+        s.sampleRate, s.minF0, s.maxF0, s.voicingThreshold, "PITCH",
+        QString::fromStdString(s.pitchNormalization), QString::fromStdString(s.pitchInterpolationType),
+        QString::fromStdString(s.pitchSmoothing), s.pitchSmoothingWindowSize,
+        s.pitchGaussianSmoothingSigma, s.pitchSplineSmoothingPenalty, true, false);
+}
+
+QVariantMap WavFileApi::getScoringUMP(const QVariantList& pitch,
+    const QVariantList& referenceCuePoints, int referenceWaveSize)
+{
+    const auto s = Settings::loadSettings();
+    return getUMP(pitch, referenceCuePoints, 50, 100, 50, referenceWaveSize,
+        QString::fromStdString(s.pitchInterpolationType), QString::fromStdString(s.umpSmoothing),
+        s.umpSmoothingWindowSize, s.umpGaussianSmoothingSigma, s.umpSplineSmoothingPenalty,
+        true, false);
+}
+
 QVariantMap WavFileApi::getUMP(const QVariantList& pitch,
     const QVariantList& cuePoints, int pLength,
     int nLength, int tLength, int waveDataSize,
