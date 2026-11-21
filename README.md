@@ -234,6 +234,20 @@ cmake ..
 cmake --build . --target appsinging-lessons-trainer -- -j2
 ```
 
+#### Scoring regression tests (desktop)
+
+From the repository root, after configuring the build:
+
+```bash
+cmake --build build --target tonal_error_test scoring_regression --parallel 2
+ctest --test-dir build --output-on-failure
+```
+
+Tests are enabled by default (`BUILD_TESTING=ON`). They cover the power mean,
+invalid comparisons, one- and two-region lessons, and self-comparison of every
+bundled lesson through pitch extraction, DTW, UMP, and scoring in both nucleus-only
+and full-profile modes. Test settings are isolated from saved user settings.
+
 #### Linux AppImage
 
 `scripts/build_appimage.sh` builds an x86_64 AppImage with the program, Qt, QML modules, the FFmpeg multimedia plugin, the OpenMP runtime, translations, `settings.ini`, and the reference recordings in `data/patterns`.

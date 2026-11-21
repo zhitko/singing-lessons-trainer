@@ -34,6 +34,7 @@ struct UMPComparison {
     // Not a percent: the training screen shows this value times 100.
     // See helpers/tonalerror.h. The exact formula still needs Boris's confirmation.
     double meanTonalError;
+    bool valid = false; // False means no score is available, not a perfect match.
 };
 
 /**
@@ -104,8 +105,8 @@ public:
      * analysis and range normalization. Both UMP vectors must have the same
      * length. The tonal error uses those same samples.
      *
-     * @note Returns zero values for all fields if input vectors have mismatched
-     * lengths or if either vector is empty.
+     * @note valid is false for empty, mismatched, or non-finite inputs and an
+     * invalid full range. Callers must check it before using numeric fields.
      */
     static UMPComparison compareUMP(const std::vector<double>& referenceUmp,
         const std::vector<double>& userUmp,

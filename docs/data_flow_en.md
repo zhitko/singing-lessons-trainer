@@ -106,10 +106,7 @@ Default tracker: **RAPT** (SWIPE, REAPER, DIO, Harvest are available). Typical s
 ```mermaid
 flowchart LR
     Sig["Waveform"] --> Track["F0 tracker"]
-    Track --> Mask{"Keep nucleus only?"}
-    Mask -->|yes| ZeroN["Zero frames outside N"]
-    Mask -->|no| Gaps
-    ZeroN --> Gaps["Interpolate unvoiced frames, no edge extrapolation"]
+    Track --> Gaps["Interpolate unvoiced frames, no edge extrapolation"]
     Gaps --> Smooth["Smoother: median, moving average, Gaussian, or spline"]
     Smooth --> Norm["Normalize: min-max, mean, or mean-deviation"]
     Norm --> Scale["Scale to 0 to 1"]
@@ -119,7 +116,7 @@ flowchart LR
 - Unvoiced frames (F0 = 0) are filled by the chosen interpolator (default **linear**). Leading and trailing unvoiced runs are left empty so the contour is not extrapolated.
 - Default smoother: **median**, window 16.
 - Default normalization: **min–max**, then affine map to `0…1`.
-- Optional **nucleus mask**: frames outside N (the main tone region marked in the sample) are zeroed *before* interpolation and smoothing.
+- Training uses the same pitch preprocessing for the reference and the take. The optional **nucleus mask** selects their shared N frames only at the scoring stage, after alignment and UMP generation.
 
 ### Log pitch and its derivative
 
@@ -203,10 +200,12 @@ flowchart LR
     Seg --> Rs["Resample each region to 50, 100, 50"]
     Rs --> Fill["Linear fill of remaining zeros"]
     Fill --> Sm["Optional smoothing"]
-    Sm --> Profile["200-point profile"]
+    Sm --> Profile["Concatenated region profile"]
 ```
 
 A P or T marker sitting between two N regions is split into a T + P pair so adjacent nuclei stay separated.
+
+One- and two-region lessons are supported. A single N region produces 100 points, without requiring or inventing P and T regions.
 
 The reference profile is built by exactly the same procedure, from the *unwarped* reference F0.
 
@@ -215,6 +214,8 @@ The reference profile is built by exactly the same procedure, from the *unwarped
 ## 5. Score
 
 Both profiles are the same length, so they can be compared point by point.
+
+Empty, mismatched, or non-finite curves are invalid comparisons. Nucleus-only scoring also requires shared N frames. Invalid comparisons show no current score and are not saved to statistics.
 
 ```mermaid
 flowchart LR

@@ -2,6 +2,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -38,6 +39,9 @@ int main()
     require(cubic > arithmetic, "p=3 must weigh the large error more than p=1");
 
     require(near(meanAbsolutePower(reference, user, 0.0), cubic), "non-positive p falls back to 3");
+    require(near(meanAbsolutePower(reference, user, std::numeric_limits<double>::quiet_NaN()), cubic), "NaN p falls back to 3");
+    require(near(meanAbsolutePower(reference, user, std::numeric_limits<double>::infinity()), cubic), "infinite p falls back to 3");
+    require(near(meanAbsolutePower(reference, user, 4.0), std::pow(0.25, 0.25)), "higher powers use the configured exponent");
     require(near(meanAbsolutePower(reference, user, kDefaultTonalErrorPower), cubic), "default exponent is 3");
     require(near(meanAbsolutePower({}, {}, 3.0), 0.0), "empty input is 0");
 
