@@ -1,0 +1,360 @@
+cmake_minimum_required(VERSION 3.16)
+
+# versionName. Bump with QT_ANDROID_VERSION_CODE for each Play upload.
+# See scripts/android_build_guide.md (Release versioning).
+project(singing-lessons-trainer VERSION 0.1.0 LANGUAGES CXX)
+
+# Install identity, distinct from Inton Trainer 2 so the two apps can be
+# installed side by side. APP_ORGANIZATION / APP_APPLICATION are also the
+# Qt settings organization and application name (see main.cpp).
+set(APP_ORGANIZATION "by.intoncore")
+set(APP_APPLICATION "SingingLessonsTrainer")
+set(APP_DISPLAY_NAME "Singing Lessons Trainer")
+set(APP_ANDROID_PACKAGE "by.intoncore.singinglessonstrainer")
+
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
+
+find_package(Qt6 6.12 REQUIRED COMPONENTS Quick Multimedia LinguistTools)
+
+# ---------------------------------------------------------------------------
+# OpenMP: on Android the NDK ships libomp (clang runtime) but CMake's
+# FindOpenMP won't discover it automatically when cross-compiling.
+# We locate it manually and create a thin imported target that wraps it.
+# ---------------------------------------------------------------------------
+if(ANDROID)
+    # Use CMAKE_ANDROID_ARCH_ABI to find the correct libomp for the target architecture
+    find_library(OMP_LIBRARY
+        NAMES omp
+        PATHS "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/*/lib/linux/${CMAKE_ANDROID_ARCH_ABI_TRIPLET}"
+        NO_DEFAULT_PATH
+    )
+    if(NOT OMP_LIBRARY)
+        # Fallback: try with ANDROID_ABI
+        find_library(OMP_LIBRARY
+            NAMES omp
+            PATHS "${CMAKE_ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/lib/clang/*/lib/linux/${ANDROID_ABI}"
+            NO_DEFAULT_PATH
+        )
+    endif()
+    if(NOT OMP_LIBRARY)
+        message(WARNING
+            "libomp not found in NDK. OpenMP support will be disabled on Android. "
+            "Set OMP_LIBRARY manually to the path of libomp.so for your ABI."
+        )
+        set(ANDROID_OMP_FLAGS "")
+    else()
+        message(STATUS "Android OpenMP library: ${OMP_LIBRARY}")
+        set(ANDROID_OMP_FLAGS "-fopenmp")
+        add_library(AndroidOMP SHARED IMPORTED)
+        set_target_properties(AndroidOMP PROPERTIES
+            IMPORTED_LOCATION "${OMP_LIBRARY}"
+        )
+    endif()
+else()
+    find_package(OpenMP REQUIRED)
+endif()
+
+if(ANDROID)
+    # Keep DWARF in Release objects so AGP can embed Play native debug symbols
+    # (android/build.gradle: ndk.debugSymbolLevel = FULL). Packaged .so files
+    # are still stripped; symbols go into AAB BUNDLE-METADATA.
+    add_compile_options("$<$<CONFIG:Release>:-g>")
+endif()
+
+qt_standard_project_setup(REQUIRES 6.12 I18N_TRANSLATED_LANGUAGES en ru)
+
+qt_add_executable(appsinging-lessons-trainer
+    main.cpp
+    src/mingw_libstdcxx_compat.cpp
+    src/api/audioapi.h
+    src/api/audioapi.cpp
+    src/api/fileapi.h
+    src/api/fileapi.cpp
+    src/api/wavfileapi.h
+    src/api/wavfileapi.cpp
+    src/api/analysisapi.h
+    src/api/analysisapi.cpp
+    src/api/settingsapi.h
+    src/api/settingsapi.cpp
+    src/api/statisticsapi.h
+    src/api/statisticsapi.cpp
+    src/api/qmllogger.h
+    src/api/qmllogger.cpp
+    src/api/helpers/settings.h
+    src/api/helpers/settings.cpp
+    src/api/helpers/statistics.h
+    src/api/helpers/statistics.cpp
+    src/api/helpers/beepplayer.h
+    src/services/wavfileservice.h
+    src/services/wavfileservice.cpp
+    src/services/vadenergryservice.h
+    src/services/vadenergryservice.cpp
+    src/services/vadautocorrelationservice.h
+    src/services/vadautocorrelationservice.cpp
+    src/services/pitchservice.h
+    src/services/pitchservice.cpp
+    src/services/specservice.h
+    src/services/specservice.cpp
+    src/services/amplitudeservice.h
+    src/services/amplitudeservice.cpp
+    src/services/umpservice.h
+    src/services/umpservice.cpp
+    src/services/dpservice.h
+    src/services/dpservice.cpp
+    src/services/cdtwservice.h
+    src/services/cdtwservice.cpp
+    src/services/helpers/wavFile.h
+    src/services/helpers/wavFile.cpp
+    src/services/helpers/vectorutils.h
+    src/services/helpers/vectorutils.cpp
+    src/services/helpers/vectorutils_normalization.cpp
+    src/services/helpers/vectorutils_interpolation.cpp
+    src/services/helpers/vectorutils_smoothing.cpp
+    src/services/helpers/fileLogger.h
+)
+
+target_include_directories(appsinging-lessons-trainer PRIVATE 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/api
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/services
+    ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/alglib-cpp/src
+)
+
+# alglib: AVX2/FMA/SSE2 kernels are x86-only; skip them on ARM Android
+if(ANDROID)
+    target_sources(appsinging-lessons-trainer PRIVATE
+        3rdparty/alglib-cpp/src/alglibinternal.cpp
+        3rdparty/alglib-cpp/src/alglibmisc.cpp
+        3rdparty/alglib-cpp/src/ap.cpp
+        3rdparty/alglib-cpp/src/dataanalysis.cpp
+        3rdparty/alglib-cpp/src/diffequations.cpp
+        3rdparty/alglib-cpp/src/fasttransforms.cpp
+        3rdparty/alglib-cpp/src/integration.cpp
+        3rdparty/alglib-cpp/src/interpolation.cpp
+        3rdparty/alglib-cpp/src/linalg.cpp
+        3rdparty/alglib-cpp/src/minlp.cpp
+        3rdparty/alglib-cpp/src/optimization.cpp
+        3rdparty/alglib-cpp/src/solvers.cpp
+        3rdparty/alglib-cpp/src/specialfunctions.cpp
+        3rdparty/alglib-cpp/src/statistics.cpp
+    )
+else()
+    target_sources(appsinging-lessons-trainer PRIVATE
+        3rdparty/alglib-cpp/src/alglibinternal.cpp
+        3rdparty/alglib-cpp/src/alglibmisc.cpp
+        3rdparty/alglib-cpp/src/ap.cpp
+        3rdparty/alglib-cpp/src/dataanalysis.cpp
+        3rdparty/alglib-cpp/src/diffequations.cpp
+        3rdparty/alglib-cpp/src/fasttransforms.cpp
+        3rdparty/alglib-cpp/src/integration.cpp
+        3rdparty/alglib-cpp/src/interpolation.cpp
+        3rdparty/alglib-cpp/src/kernels_avx2.cpp
+        3rdparty/alglib-cpp/src/kernels_fma.cpp
+        3rdparty/alglib-cpp/src/kernels_sse2.cpp
+        3rdparty/alglib-cpp/src/linalg.cpp
+        3rdparty/alglib-cpp/src/minlp.cpp
+        3rdparty/alglib-cpp/src/optimization.cpp
+        3rdparty/alglib-cpp/src/solvers.cpp
+        3rdparty/alglib-cpp/src/specialfunctions.cpp
+        3rdparty/alglib-cpp/src/statistics.cpp
+    )
+endif()
+
+set(SPTK_BUILD_COMMANDS OFF CACHE BOOL "Build SPTK commands" FORCE)
+add_subdirectory(3rdparty/SPTK)
+
+set(qml_singletons
+    ui/utils/AppScale.qml
+    ui/utils/Icons.qml
+    ui/utils/Logger.qml
+    ui/utils/Theme.qml
+)
+
+set_source_files_properties(${qml_singletons}
+    PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
+qt_add_qml_module(appsinging-lessons-trainer
+    URI inton-trainer-2
+    VERSION 1.0
+    QML_FILES
+        ui/Main.qml
+        ui/pages/RecordingPage.qml
+        ui/pages/HomePage.qml
+        ui/pages/RecordsPage.qml
+        ui/pages/TemplatesPage.qml
+        ui/pages/TemplateCategoriesPage.qml
+        ui/pages/TemplateFilesPage.qml
+        ui/pages/TemplatePage.qml
+        ui/pages/TrainingPage.qml
+        ui/pages/SettingsPage.qml
+        ui/pages/UserGuidePage.qml
+        ui/pages/PrivacyPolicyPage.qml
+        ui/pages/LicensesPage.qml
+        ui/components/cards/Card.qml
+        ui/components/GraphCard.qml
+        ui/components/FileTreeView.qml
+        ui/components/FileTreeViewItem.qml
+        ui/components/ListItem.qml
+        ui/components/RecordItem.qml
+        ui/components/PlayButton.qml
+        ui/components/PlayRoundButton.qml
+        ui/components/RecordRoundButton.qml
+        ui/components/CustomButton.qml
+        ui/components/DeleteButton.qml
+        ui/components/WaveFormGraph.qml
+        ui/components/Spectrogram2DGraph.qml
+        ui/components/CircularProgress.qml
+        ui/components/StatBox.qml
+        ui/components/StartTrainingButton.qml
+        ui/components/SearchActionBar.qml
+        ui/components/ListSectionHeader.qml
+        ui/components/EmptyState.qml
+        ui/components/ConfirmDialog.qml
+        ui/components/VadCalibrationDialog.qml
+        ui/components/SearchBar.qml
+        ui/components/Chip.qml
+        ${qml_singletons}
+    RESOURCES
+        res/fonts/fa-brands-400.ttf
+        res/fonts/fa-regular-400.ttf
+        res/fonts/fa-solid-900.ttf
+        res/icons/intontrainer.png
+        res/images/wave.png
+        LICENSE
+        docs/quick_guide_ch_en.md
+        docs/quick_guide_ch_ru.md
+        docs/privacy_policy_en.md
+        docs/privacy_policy_ru.md
+        licenses/THIRD_PARTY_NOTICES.md
+        licenses/LGPL-3.0.txt
+        licenses/Font-Awesome-Free-LICENSE.txt
+        licenses/LLVM-OpenMP-LICENSE.txt
+        3rdparty/alglib-cpp/gpl2.txt
+        3rdparty/alglib-cpp/gpl3.txt
+        3rdparty/SPTK/LICENSE
+        3rdparty/SPTK/third_party/WORLD/LICENSE
+        3rdparty/SPTK/third_party/REAPER/LICENSE
+        3rdparty/SPTK/third_party/SWIPE/LICENSE
+        3rdparty/SPTK/third_party/Snack/LICENSE
+        3rdparty/SPTK/third_party/GETOPT/LICENSE
+)
+
+qt_add_translations(appsinging-lessons-trainer
+    TS_FILES
+        i18n/inton-trainer-2_en.ts
+        i18n/inton-trainer-2_ru.ts
+    QM_FILES_OUTPUT_VARIABLE
+        qm_files
+)
+
+if(WIN32)
+    target_sources(appsinging-lessons-trainer PRIVATE res/icons/intontrainer.rc)
+endif()
+
+if(APPLE)
+    set_source_files_properties(res/icons/intontrainer.icns
+        PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    target_sources(appsinging-lessons-trainer PRIVATE res/icons/intontrainer.icns)
+endif()
+
+set_target_properties(appsinging-lessons-trainer PROPERTIES
+    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+    MACOSX_BUNDLE_ICON_FILE intontrainer.icns
+    MACOSX_BUNDLE TRUE
+    WIN32_EXECUTABLE TRUE
+)
+
+set_property(SOURCE main.cpp APPEND PROPERTY
+    COMPILE_DEFINITIONS PROJECT_VERSION="${PROJECT_VERSION}"
+)
+
+target_compile_definitions(appsinging-lessons-trainer PRIVATE
+    APP_ORGANIZATION="${APP_ORGANIZATION}"
+    APP_APPLICATION="${APP_APPLICATION}"
+    APP_ORGANIZATION_DOMAIN="intoncore.by"
+)
+
+if(ANDROID)
+    set_target_properties(appsinging-lessons-trainer PROPERTIES
+        QT_ANDROID_PACKAGE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/android"
+        QT_ANDROID_TARGET_SDK_VERSION 36
+        QT_ANDROID_COMPILE_SDK_VERSION 36
+        QT_ANDROID_MIN_SDK_VERSION 26
+        QT_ANDROID_VERSION_CODE 1  # increment on every Play AAB of this package
+        QT_ANDROID_VERSION_NAME "${PROJECT_VERSION}"
+        # Launcher name. Distinct from Inton Trainer 2.
+        QT_ANDROID_APP_NAME "${APP_DISPLAY_NAME}"
+        # Application id. Lowercase, same by.intoncore.<product> shape as
+        # Inton Trainer 2 (by.intoncore.intontrainer2), without a language
+        # suffix. Cannot change after the first Play upload.
+        QT_ANDROID_PACKAGE_NAME "${APP_ANDROID_PACKAGE}"
+        # Uncompressed native libs, 16 KB zip-aligned by AGP 9.2. Required
+        # so Play-generated APKs mmap .so files on 16 KB page-size devices.
+        # Address Sanitizer builds should override this to TRUE.
+        QT_ANDROID_LEGACY_PACKAGING FALSE
+    )
+    # Google Play (API 35+ / 16 KB page size): ELF LOAD segments must be
+    # 16 KB aligned. NDK r27 does not default to this (r28+ does).
+    target_link_options(appsinging-lessons-trainer PRIVATE
+        "-Wl,-z,max-page-size=16384"
+        "-Wl,-z,common-page-size=16384"
+    )
+endif()
+
+if(ANDROID)
+    if(TARGET AndroidOMP)
+        target_compile_options(appsinging-lessons-trainer PRIVATE ${ANDROID_OMP_FLAGS})
+        target_link_libraries(appsinging-lessons-trainer
+            PRIVATE Qt6::Quick Qt6::Multimedia sptk AndroidOMP
+        )
+    else()
+        target_link_libraries(appsinging-lessons-trainer
+            PRIVATE Qt6::Quick Qt6::Multimedia sptk
+        )
+    endif()
+
+    # Copy runtime resources into android/assets/ so androiddeployqt bundles
+    # them into the APK (extracted to AppDataLocation on device).
+    add_custom_target(copy_runtime_resources ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/settings.ini"
+            "${CMAKE_SOURCE_DIR}/android/assets/settings.ini"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/data"
+            "${CMAKE_SOURCE_DIR}/android/assets/data"
+        COMMENT "Copying settings.ini and data/ to APK assets"
+    )
+else()
+    target_link_libraries(appsinging-lessons-trainer
+        PRIVATE Qt6::Quick Qt6::Multimedia sptk OpenMP::OpenMP_CXX
+    )
+
+    # settings.ini and data/ live under <bindir>/<org>/<app> so a side-by-side
+    # install does not share Inton Trainer 2's files. Matches getAppDataDir().
+    set(RUNTIME_DATA_DIR "${CMAKE_BINARY_DIR}/${APP_ORGANIZATION}/${APP_APPLICATION}")
+    add_custom_target(copy_runtime_resources ALL
+        COMMAND ${CMAKE_COMMAND} -E make_directory "${RUNTIME_DATA_DIR}"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_SOURCE_DIR}/settings.ini"
+            "${RUNTIME_DATA_DIR}/settings.ini"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_SOURCE_DIR}/data"
+            "${RUNTIME_DATA_DIR}/data"
+        COMMENT "Copying settings.ini and data/ to ${APP_ORGANIZATION}/${APP_APPLICATION}"
+    )
+endif()
+
+add_dependencies(appsinging-lessons-trainer copy_runtime_resources)
+
+include(GNUInstallDirs)
+install(TARGETS appsinging-lessons-trainer
+    BUNDLE DESTINATION .
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+install(FILES packaging/by.intontrainer.SingingLessonsTrainer.desktop
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/applications)
+install(DIRECTORY res/icons/hicolor/
+    DESTINATION ${CMAKE_INSTALL_DATADIR}/icons/hicolor
+    FILES_MATCHING PATTERN "*.png")
