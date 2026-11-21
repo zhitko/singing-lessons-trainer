@@ -10,15 +10,30 @@ import "../utils"
 Page {
     id: filesPage
     title: categoryName
+    padding: 0
 
     property string categoryPath: ""
     property string categoryName: ""
+    // True when shown as the right pane of the library instead of a pushed page.
+    property bool embedded: false
     property var allFiles: []
     property string currentFilter: "all" // all, noScore, above90, below90
     property string unfoldedCategory: ""
+    readonly property bool searching: searchField.text !== ""
+
+    background: Rectangle {
+        color: filesPage.embedded ? "transparent" : Theme.background(Material.theme)
+    }
 
     Component.onCompleted: {
         loadFiles();
+    }
+
+    onCategoryPathChanged: {
+        if (categoryPath !== "") {
+            unfoldedCategory = "";
+            loadFiles();
+        }
     }
 
     onVisibleChanged: {
@@ -30,12 +45,14 @@ Page {
     }
 
     function loadFiles() {
+        if (categoryPath === "")
+            return;
         // Load all files from the category and subdirectories
         let basePath = "data/patterns/" + categoryPath;
         let files = fileApi.getFilesList(basePath, ["*.wav"]);
-        
+
         // Convert to array and enrich with statistics
-        allFiles = files.map(function(file) {
+        let loaded = files.map(function(file) {
             let filePath = basePath + "/" + file.filePath;
             let score = statisticsApi.getBestResultForFile(filePath);
             let filePathStr = String(file.filePath);
@@ -50,14 +67,19 @@ Page {
                 directory: dir
             };
         });
-        
+
         // Sort by directory and then by natural file name order
-        allFiles.sort((a, b) => {
+        loaded.sort((a, b) => {
             let dirCompare = a.directory.localeCompare(b.directory);
             if (dirCompare !== 0)
                 return dirCompare;
-            return a.fileName.localeCompare(b.fileName);
+            return a.fileName.localeCompare(b.fileName, undefined, { numeric: true });
         });
+        allFiles = loaded;
+
+        // Open the first group so the pane never looks empty.
+        if (unfoldedCategory === "" && allFiles.length > 0)
+            unfoldedCategory = allFiles[0].directory;
     }
 
     function applyFilter(files) {
@@ -75,6 +97,25 @@ Page {
         });
     }
 
+    function groupStats(directory) {
+        let total = 0, done = 0;
+        for (let i = 0; i < allFiles.length; i++) {
+            if (allFiles[i].directory !== directory)
+                continue;
+            total++;
+            if (allFiles[i].hasScore)
+                done++;
+        }
+        return { total: total, done: done };
+    }
+
+    readonly property var visibleFiles: {
+        let filtered = applyFilter(allFiles);
+        if (!searchField.text)
+            return filtered;
+        return filtered.filter(file => file.fileName.toLowerCase().includes(searchField.text.toLowerCase()));
+    }
+
     FileApi {
         id: fileApi
     }
@@ -86,224 +127,204 @@ Page {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: AppScale.pagePadding
-        spacing: AppScale.isCompact ? 10 : 16
+        anchors.bottomMargin: 0
+        spacing: AppScale.isCompact ? 10 : 14
 
-        // Search Bar
+        // Pane header (embedded only — a pushed page shows its title in the app bar)
+        RowLayout {
+            visible: filesPage.embedded
+            Layout.fillWidth: true
+            spacing: 12
+
+            Label {
+                Layout.fillWidth: true
+                text: filesPage.categoryName
+                font.pixelSize: AppScale.fs(22)
+                font.weight: Font.Bold
+                elide: Text.ElideRight
+                color: Theme.onSurface(Material.theme)
+            }
+
+            Label {
+                text: qsTr("%n lesson(s)", "", allFiles.length)
+                font.pixelSize: AppScale.fs(13)
+                color: Theme.onSurfaceVariant(Material.theme)
+            }
+        }
+
         SearchBar {
             id: searchField
+            placeholderText: qsTr("Search lessons")
         }
 
-        // Filter Chips
-        Rectangle {
+        // Filter Chips — one horizontally scrollable row
+        Flickable {
             Layout.fillWidth: true
-            implicitHeight: filterLayout.implicitHeight + 16
-            radius: Theme.shapeSmall
-            color: Theme.surfaceContainerLow(Material.theme)
+            Layout.preferredHeight: chipRow.implicitHeight
+            contentWidth: chipRow.implicitWidth
+            flickableDirection: Flickable.HorizontalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            clip: true
 
-            ColumnLayout {
-                id: filterLayout
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 6
+            Row {
+                id: chipRow
+                spacing: 8
 
-                Flow {
-                    spacing: 8
-                    flow: Flow.LeftToRight
-                    Layout.fillWidth: true
-
-                    Chip {
-                        text: qsTr("All files")
-                        icon: Icons.faList
-                        selected: currentFilter === "all"
-                        onClicked: {
-                            currentFilter = "all";
-                        }
-                    }
+                Repeater {
+                    model: [
+                        { id: "all", text: qsTr("All lessons"), icon: Icons.faList },
+                        { id: "noScore", text: qsTr("New"), icon: Icons.faClock },
+                        { id: "below90", text: qsTr("Improve"), icon: Icons.faArrowTrendUp },
+                        { id: "above90", text: qsTr("Mastered"), icon: Icons.faTrophy }
+                    ]
 
                     Chip {
-                        text: qsTr("New")
-                        icon: Icons.faClock
-                        selected: currentFilter === "noScore"
-                        onClicked: {
-                            currentFilter = "noScore";
-                        }
-                    }
-
-                    Chip {
-                        text: qsTr("Improve")
-                        icon: Icons.faArrowTrendUp
-                        selected: currentFilter === "below90"
-                        onClicked: {
-                            currentFilter = "below90";
-                        }
-                    }
-
-                    Chip {
-                        text: qsTr("Mastered")
-                        icon: Icons.faTrophy
-                        selected: currentFilter === "above90"
-                        onClicked: {
-                            currentFilter = "above90";
-                        }
+                        required property var modelData
+                        text: modelData.text
+                        icon: modelData.icon
+                        selected: filesPage.currentFilter === modelData.id
+                        onClicked: filesPage.currentFilter = modelData.id
                     }
                 }
             }
         }
 
-        // Files List — wrapped in RowLayout so the scrollbar sits beside (not over) items
-        RowLayout {
+        ListView {
+            id: listView
             Layout.fillWidth: true
             Layout.fillHeight: true
+            clip: true
             spacing: 0
-
-            ListView {
-                id: listView
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                spacing: 0
-                cacheBuffer: 20000
-
-                model: {
-                    let filtered = applyFilter(allFiles);
-                    if (!searchField.text)
-                        return filtered;
-                    return filtered.filter(file => file.fileName.toLowerCase().includes(searchField.text.toLowerCase()));
-                }
-
-                section.property: "directory"
-                section.criteria: ViewSection.FullString
-                section.delegate: Item {
-                    id: sectionHeader
-                    width: listView.width
-                    height: 58 // 48 height + 10 spacing
-                    visible: section !== ""
-
-                    Rectangle {
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: 48
-                        anchors.leftMargin: 8
-                        anchors.rightMargin: 8
-                        radius: Theme.shapeSmall
-                        color: headerMouseArea.containsMouse ? Theme.surfaceContainerLow(Material.theme) : Theme.surfaceContainerLowest(Material.theme)
-                        border.color: Theme.outlineVariant(Material.theme)
-                        border.width: 1
-
-                        RowLayout {
-                            anchors.fill: parent
-                            anchors.leftMargin: 16
-                            anchors.rightMargin: 16
-                            spacing: 8
-
-                            Text {
-                                text: section
-                                font.pixelSize: AppScale.fs(AppScale.isCompact ? 15 : 18)
-                                font.weight: 700
-                                color: Theme.onSurface(Material.theme)
-                                Layout.fillWidth: true
-                                elide: Text.ElideRight
-                            }
-
-                            Text {
-                                id: chevronIcon
-                                text: Icons.faChevronRight
-                                font.family: Icons.familySolid
-                                font.weight: Font.Black
-                                font.pixelSize: AppScale.fs(14)
-                                color: Theme.onSurfaceVariant(Material.theme)
-                                opacity: 0.7
-                                
-                                transformOrigin: Item.Center
-                                rotation: (searchField.text !== "" || filesPage.unfoldedCategory === section) ? 90 : 0
-                                Behavior on rotation {
-                                    NumberAnimation {
-                                        duration: 150
-                                        easing.type: Easing.OutQuad
-                                    }
-                                }
-                            }
-                        }
-
-                        MouseArea {
-                            id: headerMouseArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (searchField.text !== "")
-                                    return;
-                                if (filesPage.unfoldedCategory === section) {
-                                    filesPage.unfoldedCategory = "";
-                                } else {
-                                    filesPage.unfoldedCategory = section;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                delegate: Item {
-                    width: listView.width
-                    visible: height > 0
-                    height: (searchField.text !== "" || modelData.directory === filesPage.unfoldedCategory) ? (AppScale.listItemHeight + 10) : 0
-                    clip: true
-
-                    Behavior on height {
-                        NumberAnimation {
-                            duration: 200
-                            easing.type: Easing.InOutQuad
-                        }
-                    }
-
-                    ListItem {
-                        anchors.top: parent.top
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: AppScale.listItemHeight
-                        itemData: modelData.fileName
-                        itemIndex: index
-                        icon: Icons.faFileAudio
-                        filePath: modelData.fullPath
-                        isFolder: false
-                        onClicked: {
-                            console.log("Clicked file:", modelData.filePath);
-                            stackView.push("TrainingPage.qml", {
-                                referenceFilePath: modelData.fullPath
-                            });
-                        }
-                    }
-                }
-            }
-
-            // External scrollbar — sits beside the list, never overlapping it
-            ScrollBar {
-                id: vScrollBar
-                Layout.fillHeight: true
-                Layout.preferredWidth: AppScale.isCompact ? 10 : 16
-                orientation: Qt.Vertical
+            cacheBuffer: 20000
+            bottomMargin: AppScale.pagePadding
+            ScrollBar.vertical: ScrollBar {
                 policy: (window.settingsApi && !window.settingsApi.showNavigationMenu) ? ScrollBar.AlwaysOn : ScrollBar.AsNeeded
-                size: listView.visibleArea.heightRatio
-                position: listView.visibleArea.yPosition
-                onPositionChanged: {
-                    if (pressed) listView.contentY = position * listView.contentHeight
+            }
+
+            readonly property int contentInset: ScrollBar.vertical.visible ? 12 : 0
+
+            model: filesPage.visibleFiles
+
+            section.property: "directory"
+            section.criteria: ViewSection.FullString
+            section.delegate: Item {
+                id: sectionHeader
+                required property string section
+                readonly property bool open: filesPage.searching || filesPage.unfoldedCategory === section
+                readonly property var stats: filesPage.groupStats(section)
+                width: listView.width - listView.contentInset
+                height: 64
+                visible: section !== ""
+
+                Rectangle {
+                    anchors.fill: parent
+                    anchors.topMargin: 4
+                    anchors.bottomMargin: 4
+                    radius: Theme.shapeLarge
+                    color: sectionHeader.open ? Theme.surfaceContainer(Material.theme) : (headerMouseArea.containsMouse ? Theme.surfaceContainerLow(Material.theme) : "transparent")
+
+                    Behavior on color {
+                        ColorAnimation { duration: 150 }
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 16
+                        anchors.rightMargin: 16
+                        spacing: 12
+
+                        Text {
+                            text: sectionHeader.open ? Icons.faFolderOpen : Icons.faFolder
+                            font.family: Icons.familySolid
+                            font.weight: Font.Black
+                            font.pixelSize: AppScale.fs(16)
+                            color: Theme.primary(Material.theme)
+                        }
+
+                        Text {
+                            text: sectionHeader.section
+                            font.pixelSize: AppScale.fs(AppScale.isCompact ? 15 : 16)
+                            font.weight: Font.Bold
+                            color: Theme.onSurface(Material.theme)
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                        }
+
+                        Text {
+                            text: sectionHeader.stats.done + " / " + sectionHeader.stats.total
+                            font.pixelSize: AppScale.fs(13)
+                            color: Theme.onSurfaceVariant(Material.theme)
+                        }
+
+                        Text {
+                            text: Icons.faChevronDown
+                            font.family: Icons.familySolid
+                            font.weight: Font.Black
+                            font.pixelSize: AppScale.fs(13)
+                            color: Theme.onSurfaceVariant(Material.theme)
+                            rotation: sectionHeader.open ? 180 : 0
+                            Behavior on rotation {
+                                NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        id: headerMouseArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            if (filesPage.searching)
+                                return;
+                            filesPage.unfoldedCategory = filesPage.unfoldedCategory === sectionHeader.section ? "" : sectionHeader.section;
+                        }
+                    }
                 }
             }
-        }
-    }
 
-    // Empty state
-    EmptyState {
-        anchors.centerIn: parent
-        showEmpty: applyFilter(allFiles).filter(file => !searchField.text || file.fileName.toLowerCase().includes(searchField.text.toLowerCase())).length === 0
-        emptyMessage: {
-            if (allFiles.length === 0) {
-                return qsTr("No files found");
-            } else if (searchField.text) {
-                return qsTr("No files match your search");
-            } else {
-                return qsTr("No files match the current filter");
+            delegate: Item {
+                width: listView.width - listView.contentInset
+                visible: height > 0
+                height: (filesPage.searching || modelData.directory === filesPage.unfoldedCategory) ? (lessonItem.height + 2) : 0
+                clip: true
+
+                Behavior on height {
+                    NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
+                }
+
+                ListItem {
+                    id: lessonItem
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: AppScale.isCompact ? 0 : 8
+                    itemData: modelData.fileName.replace(/\.wav$/i, "")
+                    itemIndex: index
+                    icon: Icons.faFileAudio
+                    filePath: modelData.fullPath
+                    isFolder: false
+                    onClicked: {
+                        stackView.push("TrainingPage.qml", {
+                            referenceFilePath: modelData.fullPath
+                        });
+                    }
+                }
+            }
+
+            EmptyState {
+                anchors.fill: parent
+                showEmpty: filesPage.visibleFiles.length === 0
+                icon: Icons.faMagnifyingGlass
+                emptyMessage: {
+                    if (allFiles.length === 0) {
+                        return qsTr("No files found");
+                    } else if (searchField.text) {
+                        return qsTr("No files match your search");
+                    } else {
+                        return qsTr("No files match the current filter");
+                    }
+                }
             }
         }
     }

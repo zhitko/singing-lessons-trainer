@@ -2,10 +2,11 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material 6.8
-import QtQuick.Effects
 import by.intontrainer.statistics 1.0
 import "../utils"
 
+// Lesson or lesson-category row: tinted icon tile, title, status line and a
+// score ring on the right.
 Item {
     id: root
 
@@ -14,7 +15,11 @@ Item {
     property string icon: Icons.faBook
     property string filePath: ""
     property bool isFolder: false
+    property bool selected: false
     property real avgScore: 0
+    property string statusText: ""
+    // Folder progress, 0..1
+    property real completeness: 0
 
     signal clicked
 
@@ -22,10 +27,7 @@ Item {
         id: statisticsApi
     }
 
-    Component.onCompleted: {
-        // Force update of the UI by re-evaluating bindings
-        updateStatistics();
-    }
+    Component.onCompleted: updateStatistics()
 
     onVisibleChanged: {
         if (visible) {
@@ -35,201 +37,126 @@ Item {
     }
 
     function updateStatistics() {
-        let completeness = 0;
-        let totalFiles = 0;
-        let processedFiles = 0;
-        let avgScoreVal = 0;
-
         if (root.isFolder) {
-            Logger.debug("Updating stats for folder: " + root.filePath);
             let folderStats = statisticsApi.getAvgResultForFolder(root.filePath);
-            completeness = folderStats.completeness;
-            totalFiles = folderStats.totalFiles;
-            processedFiles = folderStats.processedFiles;
-            avgScoreVal = folderStats.avgBestResult;
-            Logger.debug("Calculated completeness for folder: " + completeness + " processed: " + processedFiles + " total: " + totalFiles);
-            percentageText.text = processedFiles + "/" + totalFiles + " (" + Math.round(completeness) + "% " + qsTr("Progress") + ")";
-        } else {
-            Logger.debug("Updating stats for file: " + root.filePath);
-            avgScoreVal = statisticsApi.getBestResultForFile(root.filePath);
-            Logger.debug("Calculated best result for file: " + avgScoreVal);
-
-            if (avgScoreVal >= 90)
-                percentageText.text = qsTr("Excellent");
-            else if (avgScoreVal >= 70)
-                percentageText.text = qsTr("Good");
-            else if (avgScoreVal >= 40)
-                percentageText.text = qsTr("Medium");
-            else if (avgScoreVal >= 20)
-                percentageText.text = qsTr("Bad");
-            else if (avgScoreVal > 0)
-                percentageText.text = qsTr("Failure");
-            else
-                percentageText.text = qsTr("Not practiced yet");
+            root.avgScore = folderStats.avgBestResult;
+            root.completeness = folderStats.totalFiles > 0 ? folderStats.processedFiles / folderStats.totalFiles : 0;
+            root.statusText = qsTr("%1 of %2 lessons practiced").arg(Math.round(folderStats.processedFiles)).arg(Math.round(folderStats.totalFiles));
+            return;
         }
-        root.avgScore = avgScoreVal;
 
-        // Update main progress circle on the RIGHT with Best Score (Accuracy)
-        progressCircle.progress = Math.min(avgScoreVal / 100, 1.0);
-
-        // Update circle color based on score
-        if (avgScoreVal >= 90)
-            progressCircle.color = "#4caf50";
+        let score = statisticsApi.getBestResultForFile(root.filePath);
+        root.avgScore = score;
+        if (score >= 90)
+            root.statusText = qsTr("Excellent");
+        else if (score >= 70)
+            root.statusText = qsTr("Good");
+        else if (score >= 40)
+            root.statusText = qsTr("Medium");
+        else if (score >= 20)
+            root.statusText = qsTr("Bad");
+        else if (score > 0)
+            root.statusText = qsTr("Failure");
         else
-        // Green
-        if (avgScoreVal >= 70)
-            progressCircle.color = "#ff9800";
-        else
-        // Orange
-        if (avgScoreVal >= 20)
-            progressCircle.color = "#ef5350";
-        else
-        if (avgScoreVal > 0)
-            progressCircle.color = "#ef5350";
-        else
-            // Red
-            progressCircle.color = Theme.primary(Material.theme);
+            root.statusText = qsTr("Not practiced yet");
     }
 
+    readonly property var tileColors: [
+        [Theme.primaryContainer(Material.theme), Theme.onPrimaryContainer(Material.theme)],
+        [Theme.tertiaryContainer(Material.theme), Theme.onTertiaryContainer(Material.theme)],
+        [Theme.secondaryContainer(Material.theme), Theme.onSecondaryContainer(Material.theme)]
+    ]
+    readonly property var tile: tileColors[root.itemIndex % tileColors.length]
+
     width: ListView.view ? ListView.view.width : 0
-    height: AppScale.listItemHeight
+    height: Math.max(AppScale.listItemHeight, contentRow.implicitHeight + 30)
 
-    Rectangle {
-        id: cardBg
+    SurfaceCard {
+        id: card
         anchors.fill: parent
-        anchors.margins: 4 // Space for shadow
-        anchors.rightMargin: 8
-        anchors.leftMargin: 8
-        radius: 12 // MD3 medium shape token
-        color: mouseArea.containsMouse ? Theme.surfaceContainerLow(Material.theme) : Theme.surface(Material.theme)
+        anchors.topMargin: 3
+        anchors.bottomMargin: 3
+        interactive: true
+        selected: root.selected
+        baseColor: Theme.surfaceContainerLow(Material.theme)
+        onClicked: root.clicked()
+        Accessible.role: Accessible.Button
+        Accessible.name: root.itemData
 
-        // MD3 Elevation 1 - base elevation for cards
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowColor: Qt.rgba(0, 0, 0, 0.12)
-            blur: 0.34
-            shadowVerticalOffset: 2
-            shadowHorizontalOffset: 0
-        }
-
-        // MD3 outline for surface containers
-        border.color: Theme.outline(Material.theme)
-        border.width: 1
-
-        // MD3 State Layer - hover effect (8% opacity)
-        Rectangle {
+        RowLayout {
+            id: contentRow
             anchors.fill: parent
-            radius: parent.radius
-            color: Theme.onSurface(Material.theme)
-            opacity: mouseArea.containsMouse ? 0.08 : 0
+            anchors.leftMargin: AppScale.isCompact ? 12 : 16
+            anchors.rightMargin: AppScale.isCompact ? 12 : 16
+            spacing: AppScale.isCompact ? 12 : 16
 
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 150
-                    easing.type: Easing.OutQuad
-                }
-            }
-        }
+            Rectangle {
+                Layout.preferredWidth: AppScale.isCompact ? 44 : 52
+                Layout.preferredHeight: Layout.preferredWidth
+                radius: Theme.shapeMedium + 2
+                color: root.tile[0]
 
-        // Icon Circle (Left)
-        Rectangle {
-            id: iconCircle
-            width: AppScale.isCompact ? 40 : 50
-            height: AppScale.isCompact ? 40 : 50
-            radius: width / 2
-            anchors.left: parent.left
-            anchors.leftMargin: AppScale.isCompact ? 12 : 25
-            anchors.verticalCenter: parent.verticalCenter
-            color: {
-                var colors = [Theme.primaryContainer(Material.theme), Theme.secondaryContainer(Material.theme), Theme.tertiaryContainer(Material.theme)];
-                return colors[root.itemIndex % colors.length];
-            }
-
-            Text {
-                anchors.centerIn: parent
-                text: root.icon
-                font.family: Icons.familySolid
-                font.weight: Font.Black
-                font.pixelSize: AppScale.fs(18)
-                color: Theme.onPrimaryContainer(Material.theme)
-            }
-        }
-
-        // Text Info
-        ColumnLayout {
-            anchors.left: iconCircle.right
-            anchors.leftMargin: 16
-            anchors.right: statusIndicatorContainer.left
-            anchors.rightMargin: 16
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 4
-
-            Text {
-                text: root.itemData // Folder name
-                font.pixelSize: AppScale.fs(AppScale.isCompact ? 15 : 18)
-                font.weight: 600
-                color: Theme.onSurface(Material.theme)
-                Layout.fillWidth: true
-                elide: Text.ElideRight
-            }
-
-            RowLayout {
-                spacing: 8
                 Text {
-                    text: Icons.faSquareCheck
+                    anchors.centerIn: parent
+                    text: root.icon
                     font.family: Icons.familySolid
                     font.weight: Font.Black
-                    color: Theme.onSurfaceVariant(Material.theme)
-                }
-                Text {
-                    id: percentageText
-                    color: Theme.onSurfaceVariant(Material.theme)
-                    font.pixelSize: AppScale.fs(14)
+                    font.pixelSize: AppScale.fs(AppScale.isCompact ? 17 : 20)
+                    color: root.tile[1]
                 }
             }
-        }
 
-        // Progress Indicator / Status
-        Item {
-            id: statusIndicatorContainer
-            width: AppScale.isCompact ? 56 : 76
-            height: AppScale.isCompact ? 56 : 76
-            anchors.right: parent.right
-            anchors.rightMargin: AppScale.isCompact ? 10 : 28
-            anchors.verticalCenter: parent.verticalCenter
+            ColumnLayout {
+                Layout.fillWidth: true
+                spacing: 4
 
-            Item {
-                anchors.fill: parent
+                Text {
+                    Layout.fillWidth: true
+                    text: root.itemData
+                    font.pixelSize: AppScale.fs(AppScale.isCompact ? 15 : 16)
+                    font.weight: Font.DemiBold
+                    color: root.selected ? Theme.onSecondaryContainer(Material.theme) : Theme.onSurface(Material.theme)
+                    wrapMode: Text.Wrap
+                    elide: Text.ElideRight
+                    maximumLineCount: 2
+                }
 
-                CircularProgress {
-                    id: progressCircle
-                    anchors.centerIn: parent
-                    width: parent.width
-                    height: parent.height
-                    lineWidth: 6
-                    color: Theme.primary(Material.theme)
-                    backgroundColor: Theme.surfaceContainerHighest(Material.theme)
+                Text {
+                    Layout.fillWidth: true
+                    text: root.statusText
+                    color: root.avgScore > 0 && !root.isFolder ? Theme.scoreColor(root.avgScore, Material.theme) : Theme.onSurfaceVariant(Material.theme)
+                    font.pixelSize: AppScale.fs(13)
+                    font.weight: root.avgScore > 0 && !root.isFolder ? Font.DemiBold : Font.Normal
+                    elide: Text.ElideRight
+                }
 
-                    Text {
-                        id: progressText
-                        text: root.avgScore > 0 ? Math.round(root.avgScore) + "%" : "--"
-                        font.pixelSize: AppScale.fs(AppScale.isCompact ? 13 : 16)
-                        font.weight: Font.Bold
-                        color: Theme.onSurfaceVariant(Material.theme)
-                        anchors.centerIn: parent
+                // Folder progress bar
+                Rectangle {
+                    visible: root.isFolder
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: 240
+                    Layout.topMargin: 2
+                    implicitHeight: 4
+                    radius: 2
+                    color: Theme.surfaceContainerHighest(Material.theme)
+
+                    Rectangle {
+                        width: parent.width * Math.min(1, root.completeness)
+                        height: parent.height
+                        radius: parent.radius
+                        color: Theme.primary(Material.theme)
+
+                        Behavior on width {
+                            NumberAnimation { duration: 400; easing.type: Easing.OutCubic }
+                        }
                     }
                 }
             }
-        }
 
-        MouseArea {
-            id: mouseArea
-            anchors.fill: parent
-            hoverEnabled: true
-            cursorShape: Qt.PointingHandCursor
-            onClicked: {
-                root.clicked();
+            ScoreRing {
+                Layout.preferredWidth: AppScale.isCompact ? 46 : 54
+                Layout.preferredHeight: Layout.preferredWidth
+                score: root.avgScore
             }
         }
     }

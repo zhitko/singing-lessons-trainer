@@ -53,8 +53,8 @@ ColumnLayout {
     RoundButton {
         id: button
         Layout.alignment: Qt.AlignHCenter
-        Layout.preferredWidth: root.compact ? 48 : 56
-        Layout.preferredHeight: root.compact ? 48 : 56
+        Layout.preferredWidth: root.compact ? 52 : 64
+        Layout.preferredHeight: root.compact ? 52 : 64
         font.family: Icons.familySolid
         font.weight: Font.Black
         text: root.isPlaying ? Icons.faStop : root.icon
@@ -153,12 +153,12 @@ ColumnLayout {
         Layout.alignment: Qt.AlignHCenter
         Layout.fillWidth: true
         text: root.text
-        font.pixelSize: AppScale.fs(root.compact ? 13 : 18)
-        font.weight: 500
+        font.pixelSize: AppScale.fs(root.compact ? 12 : 14)
+        font.weight: Font.Medium
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.WordWrap
         maximumLineCount: 2
         elide: Text.ElideRight
-        color: Theme.onSurface(Material.theme)
+        color: Theme.onSurfaceVariant(Material.theme)
     }
 }

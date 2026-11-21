@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material 6.8
-import QtQuick.Effects
 import by.intontrainer.statistics 1.0
 import "../components"
 import "../components/cards"
@@ -10,12 +9,22 @@ import "../utils"
 
 Page {
     id: root
-    title: " "
+    title: qsTr("Practice studio")
     padding: 0
 
     readonly property var settingsApi: ApplicationWindow.window ? ApplicationWindow.window.settingsApi : null
     readonly property bool compactHome: AppScale.isCompact
-    readonly property bool shortHome: AppScale.isShort
+    readonly property bool wideHome: AppScale.viewWidth >= 860
+
+    property real avgResult: 0
+    property int masteredCount: 0
+    property int processedFiles: 0
+    property int totalFiles: 0
+    property real completeness: 0
+
+    background: Rectangle {
+        color: Theme.background(Material.theme)
+    }
 
     StatisticsApi {
         id: statisticsApi
@@ -33,12 +42,16 @@ Page {
 
     function updateStatistics() {
         let stats = statisticsApi.getOverallStatistics();
-        avgAccuracyBox.value = Math.round(stats.avgResult) + "%";
-        totalResultsBox.value = Math.round(stats.wellTrainedFiles);
-        filesCountBox.value = Math.round(stats.processedFiles) + " / " + Math.round(stats.totalFiles);
+        avgResult = stats.avgResult;
+        masteredCount = Math.round(stats.wellTrainedFiles);
+        processedFiles = Math.round(stats.processedFiles);
+        totalFiles = Math.round(stats.totalFiles);
+        completeness = stats.completeness;
+    }
 
-        overallProgressCircle.progress = stats.completeness / 100;
-        overallProgressText.text = Math.round(stats.completeness) + "%";
+    // navigateTo() runs auto-calibration before opening the library.
+    function startSinging() {
+        window.navigateTo("library");
     }
 
     ScrollView {
@@ -51,182 +64,246 @@ Page {
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
 
         ColumnLayout {
-            width: Math.max(0, scrollView.availableWidth - AppScale.pagePadding * 2)
-            height: Math.max(implicitHeight, scrollView.availableHeight)
-            x: AppScale.pagePadding
-            spacing: root.shortHome ? 8 : AppScale.pageSpacing
+            width: Math.min(AppScale.maxContentWidth, scrollView.availableWidth - AppScale.pagePadding * 2)
+            x: (scrollView.availableWidth - width) / 2
+            y: AppScale.isCompact ? 4 : 8
+            spacing: AppScale.pageSpacing
 
-            ColumnLayout {
+            GridLayout {
                 Layout.fillWidth: true
-                Layout.alignment: Qt.AlignHCenter
-                Layout.topMargin: root.shortHome ? 4 : (root.compactHome ? 8 : 16)
-                spacing: root.shortHome ? 4 : 8
+                columns: root.wideHome ? 2 : 1
+                columnSpacing: AppScale.pageSpacing
+                rowSpacing: AppScale.pageSpacing
+
+                // ── Hero ────────────────────────────────────────────────
+                Rectangle {
+                    id: hero
+                    Layout.row: 0
+                    Layout.column: 0
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: root.wideHome ? 3 : 1
+                    Layout.preferredHeight: heroLayout.implicitHeight + (root.compactHome ? 40 : 56)
+                    Layout.fillHeight: root.wideHome
+                    radius: 28
+                    clip: true
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: Theme.heroStart(Material.theme) }
+                        GradientStop { position: 1.0; color: Theme.heroEnd(Material.theme) }
+                    }
+
+                    MusicStaff {
+                        // Bottom-right, beside the start button, clear of the headline.
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: root.compactHome ? 12 : 20
+                        width: parent.width * 0.42
+                        height: root.compactHome ? 72 : 96
+                        notes: [1, 3, 2, 4, 3]
+                        ink: Theme.onHero(Material.theme)
+                        lineOpacity: 0.16
+                        noteOpacity: 0.24
+                    }
+
+                    ColumnLayout {
+                        id: heroLayout
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: root.compactHome ? 20 : 28
+                        spacing: 8
+
+                        Rectangle {
+                            Layout.preferredHeight: 28
+                            Layout.preferredWidth: languageRow.implicitWidth + 24
+                            radius: 14
+                            color: Qt.alpha(Theme.onHero(Material.theme), 0.16)
+                            visible: settingsApi && settingsApi.languageTitle !== ""
+
+                            Row {
+                                id: languageRow
+                                anchors.centerIn: parent
+                                spacing: 6
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: Icons.faMusic
+                                    font.family: Icons.familySolid
+                                    font.weight: Font.Black
+                                    font.pixelSize: AppScale.fs(11)
+                                    color: Theme.onHero(Material.theme)
+                                }
+                                Text {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: settingsApi ? settingsApi.languageTitle : ""
+                                    font.pixelSize: AppScale.fs(12)
+                                    font.weight: Font.DemiBold
+                                    color: Theme.onHero(Material.theme)
+                                }
+                            }
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            Layout.topMargin: 4
+                            wrapMode: Text.Wrap
+                            text: qsTr("Find your voice")
+                            font.weight: Font.Bold
+                            font.pixelSize: AppScale.fs(root.compactHome ? 28 : 36)
+                            color: Theme.onHero(Material.theme)
+                        }
+
+                        Label {
+                            Layout.fillWidth: true
+                            Layout.maximumWidth: 420
+                            wrapMode: Text.Wrap
+                            text: qsTr("Listen closely. Sing freely. Grow with every take.")
+                            font.pixelSize: AppScale.fs(root.compactHome ? 15 : 17)
+                            color: Theme.onHero(Material.theme)
+                            opacity: 0.9
+                        }
+
+                        StartTrainingButton {
+                            Layout.topMargin: root.compactHome ? 12 : 20
+                            Layout.preferredWidth: Math.min(heroLayout.width, 280)
+                            text: qsTr("Start singing")
+                            onClicked: root.startSinging()
+                        }
+                    }
+                }
 
                 Label {
-                    Layout.alignment: Qt.AlignHCenter
+                    Layout.row: 1
+                    Layout.column: 0
+                    Layout.columnSpan: root.wideHome ? 2 : 1
                     Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
-                    text: qsTr("Singing Lessons Trainer")
+                    Layout.topMargin: 4
+                    text: qsTr("Your practice")
+                    font.pixelSize: AppScale.fs(18)
                     font.weight: Font.Bold
-                    font.pixelSize: AppScale.fs(root.compactHome ? 24 : 30)
                     color: Theme.onSurface(Material.theme)
                 }
 
-                Label {
-                    Layout.alignment: Qt.AlignHCenter
+                GridLayout {
+                    columns: AppScale.isNarrow && AppScale.fontScale > 1.3 ? 1 : 3
+                    Layout.row: 2
+                    Layout.column: 0
+                    Layout.columnSpan: root.wideHome ? 2 : 1
                     Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.Wrap
-                    text: qsTr("Sing after the reference")
-                    font.pixelSize: AppScale.fs(root.shortHome ? 15 : 17)
-                    font.weight: Font.Medium
-                    color: Theme.onSurfaceVariant(Material.theme)
-                    opacity: 0.95
-                }
+                    rowSpacing: root.compactHome ? 8 : 12
+                    columnSpacing: rowSpacing
 
-                Chip {
-                    Layout.alignment: Qt.AlignHCenter
-                    Layout.topMargin: root.shortHome ? 4 : 8
-                    text: settingsApi ? settingsApi.languageTitle : ""
-                    selected: true
-                    icon: Icons.faGlobe
-                    enabled: false
-                }
-            }
+                    StatBox {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 1
+                        Layout.minimumWidth: 0
+                        icon: Icons.faChartLine
+                        title: qsTr("Melodic similarity")
+                        value: Math.round(root.avgResult) + "%"
+                    }
 
-            Item {
-                id: startSlot
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumHeight: root.compactHome ? 112 : 140
-                Layout.preferredHeight: root.compactHome ? 168 : 200
-                Layout.maximumHeight: 260
-                clip: true
+                    StatBox {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 1
+                        Layout.minimumWidth: 0
+                        icon: Icons.faTrophy
+                        title: qsTr("Lessons mastered")
+                        value: root.masteredCount
+                        tileColor: Theme.tertiaryContainer(Material.theme)
+                        tileInk: Theme.onTertiaryContainer(Material.theme)
+                    }
 
-                Image {
-                    id: waveImage
-                    visible: false
-                    anchors.centerIn: parent
-                    // Bitmap is 628×100. Never stretch taller (or wider) than native
-                    // size — vertical fill was what made it look fuzzy.
-                    readonly property real nativeW: implicitWidth > 0 ? implicitWidth : 628
-                    readonly property real nativeH: implicitHeight > 0 ? implicitHeight : 100
-                    width: Math.min(parent.width, nativeW)
-                    height: width * nativeH / nativeW
-                    source: "qrc:/qt/qml/inton-trainer-2/res/images/wave.png"
-                    fillMode: Image.PreserveAspectFit
-                    horizontalAlignment: Image.AlignHCenter
-                    verticalAlignment: Image.AlignVCenter
-                    asynchronous: true
-                    mipmap: true
-                    smooth: true
-                }
-
-                MultiEffect {
-                    anchors.fill: waveImage
-                    source: waveImage
-                    opacity: Material.theme === Material.Dark ? 0.55 : 0.45
-                    contrast: 0.38
-                    brightness: Material.theme === Material.Dark ? 0.06 : -0.05
-                    colorization: 0.64
-                    colorizationColor: settingsApi ? settingsApi.primaryColor : "#6200ea"
-                }
-
-                StartTrainingButton {
-                    anchors.fill: parent
-                    text: qsTr("Start Training")
-                    onClicked: {
-                        if (window.settingsApi && window.settingsApi.autoCalibrate) {
-                            homeVadCalibrationDialog.open();
-                        } else {
-                            stackView.push("TemplateCategoriesPage.qml");
-                        }
+                    StatBox {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        Layout.preferredWidth: 1
+                        Layout.minimumWidth: 0
+                        icon: Icons.faMusic
+                        title: qsTr("Lessons explored")
+                        value: root.processedFiles + " / " + root.totalFiles
+                        tileColor: Theme.secondaryContainer(Material.theme)
+                        tileInk: Theme.onSecondaryContainer(Material.theme)
                     }
                 }
 
-                VadCalibrationDialog {
-                    id: homeVadCalibrationDialog
-                    onCalibrationDone: {
-                        stackView.push("TemplateCategoriesPage.qml");
-                    }
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.compactHome ? 88 : 110
-                Layout.maximumHeight: 120
-                spacing: root.compactHome ? 8 : 12
-
-                StatBox {
-                    id: avgAccuracyBox
+                // ── Repertoire progress ─────────────────────────────────
+                SurfaceCard {
+                    Layout.row: root.wideHome ? 0 : 3
+                    Layout.column: root.wideHome ? 1 : 0
                     Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.minimumWidth: 0
-                    icon: Icons.faChartLine
-                    title: qsTr("Avg Accuracy:")
-                }
+                    Layout.bottomMargin: AppScale.pagePadding
+                    Layout.preferredWidth: root.wideHome ? 2 : 1
+                    Layout.fillHeight: root.wideHome
+                    implicitHeight: progressLayout.implicitHeight + 40
+                    interactive: true
+                    onClicked: window.navigateTo("library")
 
-                StatBox {
-                    id: totalResultsBox
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.minimumWidth: 0
-                    icon: Icons.faTrophy
-                    title: qsTr("Mastered Files:")
-                }
+                    GridLayout {
+                        id: progressLayout
+                        anchors.fill: parent
+                        anchors.margins: 20
+                        columns: root.wideHome ? 1 : 2
+                        columnSpacing: 20
+                        rowSpacing: 16
 
-                StatBox {
-                    id: filesCountBox
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    Layout.minimumWidth: 0
-                    icon: Icons.faFolderOpen
-                    title: qsTr("Files Trained:")
-                }
-            }
+                        CircularProgress {
+                            id: overallProgressCircle
+                            readonly property real ringSize: (root.compactHome ? 84 : (root.wideHome ? 132 : 100)) * Math.min(AppScale.fontScale, 1.3)
+                            Layout.preferredWidth: ringSize
+                            Layout.preferredHeight: ringSize
+                            Layout.alignment: root.wideHome ? Qt.AlignHCenter : Qt.AlignVCenter
+                            lineWidth: Math.max(8, Math.round(ringSize * 0.09))
+                            progress: root.completeness / 100
+                            color: Theme.primary(Material.theme)
+                            backgroundColor: Theme.surfaceContainerHighest(Material.theme)
 
-            Item {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.minimumHeight: root.compactHome ? 96 : 120
-                Layout.preferredHeight: root.compactHome ? 132 : 180
-                Layout.maximumHeight: 220
-                Layout.bottomMargin: AppScale.pagePadding
-
-                CircularProgress {
-                    id: overallProgressCircle
-                    readonly property real ringSize: Math.min(parent.height, parent.width * 0.42, 200)
-                    anchors.centerIn: parent
-                    width: ringSize
-                    height: ringSize
-                    lineWidth: Math.max(8, Math.round(ringSize * 0.08))
-                    progress: 0.85
-                    color: Theme.primary(Material.theme)
-                    backgroundColor: Theme.surfaceContainerHighest(Material.theme)
-
-                    Column {
-                        anchors.centerIn: parent
-                        spacing: 2
-
-                        Text {
-                            text: qsTr("Completion")
-                            font.pixelSize: AppScale.fs(overallProgressCircle.ringSize < 130 ? 12 : 14)
-                            color: Theme.onSurfaceVariant(Material.theme)
-                            anchors.horizontalCenter: parent.horizontalCenter
+                            Column {
+                                anchors.centerIn: parent
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: Math.round(root.completeness) + "%"
+                                    font.pixelSize: AppScale.fs(Math.round(overallProgressCircle.ringSize * 0.22))
+                                    font.bold: true
+                                    color: Theme.onSurface(Material.theme)
+                                }
+                            }
                         }
-                        Text {
-                            id: overallProgressText
-                            text: "85%"
-                            font.pixelSize: AppScale.fs(overallProgressCircle.ringSize < 130 ? 28 : 36)
-                            font.bold: true
-                            color: Theme.onSurface(Material.theme)
-                            anchors.horizontalCenter: parent.horizontalCenter
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+                            Label {
+                                Layout.fillWidth: true
+                                horizontalAlignment: root.wideHome ? Text.AlignHCenter : Text.AlignLeft
+                                text: qsTr("Build your repertoire")
+                                font.pixelSize: AppScale.fs(17)
+                                font.weight: Font.DemiBold
+                                wrapMode: Text.WordWrap
+                                color: Theme.onSurface(Material.theme)
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                horizontalAlignment: root.wideHome ? Text.AlignHCenter : Text.AlignLeft
+                                text: qsTr("Explore vocal exercises and songs, one lesson at a time.")
+                                font.pixelSize: AppScale.fs(13)
+                                wrapMode: Text.WordWrap
+                                color: Theme.onSurfaceVariant(Material.theme)
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                Layout.topMargin: 4
+                                horizontalAlignment: root.wideHome ? Text.AlignHCenter : Text.AlignLeft
+                                text: qsTr("Open library") + "  →"
+                                font.pixelSize: AppScale.fs(14)
+                                font.weight: Font.DemiBold
+                                color: Theme.primary(Material.theme)
+                            }
                         }
                     }
                 }
             }
+
         }
     }
 }

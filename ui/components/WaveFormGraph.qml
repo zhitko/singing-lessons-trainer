@@ -248,7 +248,7 @@ Column {
                     ctx.fillStyle = Qt.alpha(root.chartPause, 0.5);
                     ctx.strokeStyle = root.chartInk;
                 } else if (cue.label.toUpperCase().startsWith("N")) {
-                    ctx.fillStyle = Qt.alpha(root.chartNucleus, 0.5);
+                    ctx.fillStyle = Qt.alpha(root.chartNucleus, 0.28);
                     ctx.strokeStyle = root.chartInk;
                 } else if (cue.label.toUpperCase().startsWith("T")) {
                     ctx.fillStyle = Qt.alpha(root.chartPause, 0.5);
@@ -262,7 +262,9 @@ Column {
                 ctx.beginPath();
                 ctx.rect(x, topPadding, width, graphHeight);
                 ctx.fill();
+                ctx.globalAlpha = 0.35;
                 ctx.stroke();
+                ctx.globalAlpha = 1.0;
 
                 // Draw label
                 if (root.showCueLabels || root.cueNLabels.length > 0) {
@@ -280,8 +282,16 @@ Column {
                                 ctx.save();
                                 let nFontSize = AppScale.fs(21);
                                 ctx.font = "bold " + nFontSize + "px sans-serif";
+                                var textW = ctx.measureText(nLabel).width;
+                                var maxW = Math.max(width - 4, 1);
+                                if (textW > maxW) {
+                                    nFontSize = Math.max(AppScale.fs(9), Math.floor(nFontSize * maxW / textW));
+                                    ctx.font = "bold " + nFontSize + "px sans-serif";
+                                    textW = ctx.measureText(nLabel).width;
+                                }
+                                var cx = Math.min(Math.max(x + width / 2, textW / 2 + 2), canvas.width - textW / 2 - 2);
                                 ctx.fillStyle = Theme.primary(Material.theme);
-                                ctx.fillText(nLabel, x + width / 2, labelY + 16);
+                                ctx.fillText(nLabel, cx, labelY + 16);
                                 ctx.restore();
                             }
                         }

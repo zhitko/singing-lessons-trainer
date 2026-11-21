@@ -50,11 +50,12 @@ Page {
     property var    userUMP:                   null
     property double shapeSimilarity:           0
     property bool   hasSimilarityScore:        false
-    // Mean tonal error times 100. Shown only after a comparison in this session
-    // (historical similarity has no stored error).
+    // Mean tonal error times 100. Stored with each result; older results have none (null).
     property double tonalErrorPercent:         0
     property bool   hasTonalError:             false
+    // Most recent first, aligned with each other; error entries may be null.
     property var    previousShapeSimilarities: []
+    property var    previousTonalErrors:       []
 
     property var userVadA:     []
     property var userVadU:     []
@@ -445,15 +446,22 @@ Page {
 
     function loadPreviousResults() {
         let results = statisticsApi.getResultsForFile(root.referenceFilePath);
+        let errors = statisticsApi.getErrorsForFile(root.referenceFilePath);
         if (results && results.length > 0) {
             // Exclude the latest (current) result, take up to 5 previous ones
-            // Reverse so index 0 = most recent previous (shown largest on the left)
-            let histResults = results.slice(0, -1).slice(-5).reverse();
-            root.previousShapeSimilarities = histResults.map(v => Math.round(v));
-            // Set current similarity to the latest result if no new recording yet
+            // Reverse so index 0 = most recent previous
+            root.previousShapeSimilarities = results.slice(0, -1).slice(-5).reverse().map(v => Math.round(v));
+            root.previousTonalErrors = errors.slice(0, -1).slice(-5).reverse()
+                .map(v => (v === null || v === undefined) ? null : Math.round(v));
+            // Show the latest stored result if no new recording yet
             if (root.shapeSimilarity === 0) {
                 root.shapeSimilarity = results[results.length - 1];
                 root.hasSimilarityScore = true;
+                let lastError = errors[errors.length - 1];
+                if (lastError !== null && lastError !== undefined) {
+                    root.tonalErrorPercent = lastError;
+                    root.hasTonalError = true;
+                }
             }
         }
     }
@@ -796,9 +804,6 @@ Page {
         // screen shows that mean times 100. p comes from settings.
         var newTonalErrorPercent = cmp.meanTonalError * 100;
 
-        if (root.shapeSimilarity > 0) {
-            root.previousShapeSimilarities = [Math.round(root.shapeSimilarity)].concat(root.previousShapeSimilarities).slice(0, 5);
-        }
         root.shapeSimilarity = newShapeSimilarity;
         root.hasSimilarityScore = true;
         root.tonalErrorPercent = newTonalErrorPercent;
@@ -816,7 +821,7 @@ Page {
         console.log("VAD Corr U: " + root.userVadCorrU.length);
 
         // Register the result in statistics FIRST
-        statisticsApi.registerResult(root.referenceFilePath, root.shapeSimilarity);
+        statisticsApi.registerResult(root.referenceFilePath, root.shapeSimilarity, root.tonalErrorPercent);
 
         // Register history entry for the user record only if it was a microphone recording
         if (isMicrophoneRecording) {
@@ -842,197 +847,85 @@ Page {
 
         ColumnLayout {
             id: pageLayout
-            width: Math.max(0, scrollView.availableWidth - root.pagePadding * 2)
-            x: root.pagePadding
-            y: root.pagePadding
+            width: Math.max(0, Math.min(AppScale.maxContentWidth, scrollView.availableWidth - root.pagePadding * 2))
+            x: (scrollView.availableWidth - width) / 2
+            y: root.isCompact ? 4 : 8
             height: Math.max(implicitHeight, scrollView.availableHeight - root.pagePadding * 2)
             spacing: root.isCompact ? 10 : 16
 
-            // Shape Similarity Card
+            // Result card: similarity and tonal error, each with recent history
             Rectangle {
                 id: shapeSimilarityCard
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(root.isCompact ? 56 : 80,
-                                                 currentResultColumn.implicitHeight + (root.isCompact ? 12 : 20))
-                color: Theme.secondaryContainer(root.Material.theme)
-                radius: root.isCompact ? 12 : 16
+                Layout.preferredHeight: resultRow.implicitHeight + (root.isCompact ? 16 : 24)
+                radius: root.isCompact ? 20 : 28
                 clip: true
-
-                layer.enabled: true
-                layer.effect: MultiEffect {
-                    shadowEnabled: true
-                    shadowColor: Qt.rgba(0, 0, 0, 0.15)
-                    blur: 0.5
-                    shadowVerticalOffset: 6
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: Theme.primaryContainer(root.Material.theme) }
+                    GradientStop { position: 1.0; color: Theme.tertiaryContainer(root.Material.theme) }
                 }
 
-                // Similarity, then the tonal-error percent immediately to its right.
-                Row {
-                    id: currentResultColumn
-                    anchors.centerIn: parent
-                    spacing: root.isCompact ? 16 : 28
-
-                    Column {
-                        spacing: 0
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: qsTr("Similarity")
-                            font.pixelSize: AppScale.fs(root.isCompact ? 11 : 13)
-                            font.weight: 600
-                            color: Theme.onSecondaryContainer(root.Material.theme)
-                            opacity: 0.7
-                        }
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: root.hasSimilarityScore ? Math.round(root.shapeSimilarity) + "%" : "—"
-                            font.pixelSize: AppScale.fs(root.isCompact ? 28 : 38)
-                            font.weight: 700
-                            color: Theme.primary(root.Material.theme)
-
-                            Behavior on text {
-                                SequentialAnimation {
-                                    NumberAnimation {
-                                        target: currentResultColumn
-                                        property: "scale"
-                                        from: 1.0
-                                        to: 1.12
-                                        duration: 120
-                                        easing.type: Easing.OutQuad
-                                    }
-                                    NumberAnimation {
-                                        target: currentResultColumn
-                                        property: "scale"
-                                        from: 1.12
-                                        to: 1.0
-                                        duration: 180
-                                        easing.type: Easing.OutBack
-                                    }
-                                }
-                            }
-                        }
-
-                        // Trend indicator: show delta vs most recent previous result
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            visible: root.hasSimilarityScore && root.previousShapeSimilarities.length > 0
-                            property int delta: root.previousShapeSimilarities.length > 0 ? Math.round(root.shapeSimilarity) - root.previousShapeSimilarities[0] : 0
-                            text: delta > 0 ? ("▲ +" + delta + "%") : (delta < 0 ? ("▼ " + delta + "%") : "● 0%")
-                            font.pixelSize: AppScale.fs(12)
-                            font.weight: 600
-                            color: delta > 0 ? "#4caf50" : (delta < 0 ? "#ef5350" : Theme.onSecondaryContainer(root.Material.theme))
-                            opacity: 0.85
-                        }
-                    }
-
-                    Column {
-                        visible: root.hasTonalError
-                        spacing: 0
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: qsTr("Error")
-                            font.pixelSize: AppScale.fs(root.isCompact ? 11 : 13)
-                            font.weight: 600
-                            color: Theme.onSecondaryContainer(root.Material.theme)
-                            opacity: 0.7
-                        }
-
-                        Text {
-                            anchors.horizontalCenter: parent.horizontalCenter
-                            text: Math.round(root.tonalErrorPercent) + "%"
-                            font.pixelSize: AppScale.fs(root.isCompact ? 28 : 38)
-                            font.weight: 700
-                            color: Theme.primary(root.Material.theme)
-                        }
-                    }
-                }
-
-                // Separator arrow: current → history
-                Text {
-                    id: separatorArrow
-                    anchors {
-                        left: currentResultColumn.right
-                        leftMargin: root.isCompact ? 4 : 6
-                        verticalCenter: currentResultColumn.verticalCenter
-                    }
-                    visible: root.previousShapeSimilarities.length > 0 && !root.isCompact
-                    text: "›"
-                    font.pixelSize: AppScale.fs(root.isCompact ? 16 : 20)
-                    color: Theme.primary(root.Material.theme)
-                    opacity: 0.7
-                }
-
-                // Previous results — right side, clipped so they never overlap the score
-                // index 0 = most recent (closest to center, largest/boldest)
-                // index N = oldest (far right, smallest/most faded)
-                Row {
-                    id: previousResultsRow
-                    anchors {
-                        left: separatorArrow.visible ? separatorArrow.right : currentResultColumn.right
-                        leftMargin: root.isCompact ? 6 : 12
-                        right: parent.right
-                        rightMargin: root.isCompact ? 8 : 16
-                        verticalCenter: parent.verticalCenter
-                    }
+                RowLayout {
+                    id: resultRow
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.margins: root.isCompact ? 8 : 16
                     spacing: 0
-                    clip: true
-                    visible: root.previousShapeSimilarities.length > 0 && !root.isCompact
 
-                    Repeater {
-                        model: root.previousShapeSimilarities
+                    ResultMetric {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.alignment: Qt.AlignTop
+                        label: qsTr("Similarity")
+                        value: root.shapeSimilarity
+                        hasValue: root.hasSimilarityScore
+                        history: root.previousShapeSimilarities
+                        lowerIsBetter: false
+                    }
 
-                        delegate: Item {
-                            property int baseSize: root.isCompact ? 16 : 22
-                            property int minSize: root.isCompact ? 9 : 10
-                            property real scaledSize: Math.max(minSize, baseSize - index * 3)
-                            property real scaledOpacity: Math.max(0.15, 0.55 - index * 0.10)
+                    Rectangle {
+                        Layout.fillHeight: true
+                        Layout.topMargin: 6
+                        Layout.bottomMargin: 6
+                        width: 1
+                        color: Theme.onPrimaryContainer(root.Material.theme)
+                        opacity: 0.15
+                    }
 
-                            width: valueText.implicitWidth + (arrowText.visible ? arrowText.implicitWidth : 0) + 2
-                            height: 60
-
-                            Text {
-                                id: valueText
-                                anchors {
-                                    left: parent.left
-                                    verticalCenter: parent.verticalCenter
-                                }
-                                text: modelData + "%"
-                                font.pixelSize: AppScale.fs(scaledSize)
-                                font.weight: index === 0 ? 600 : 500
-                                color: Theme.onSecondaryContainer(root.Material.theme)
-                                opacity: scaledOpacity
-                            }
-
-                            Text {
-                                id: arrowText
-                                anchors {
-                                    left: valueText.right
-                                    verticalCenter: parent.verticalCenter
-                                }
-                                visible: index < root.previousShapeSimilarities.length
-                                text: " ›"
-                                font.pixelSize: AppScale.fs(scaledSize * 0.7)
-                                color: Theme.onSecondaryContainer(root.Material.theme)
-                                opacity: scaledOpacity * 0.6
-                            }
-                        }
+                    ResultMetric {
+                        Layout.fillWidth: true
+                        Layout.preferredWidth: 1
+                        Layout.alignment: Qt.AlignTop
+                        label: qsTr("Error")
+                        value: root.tonalErrorPercent
+                        hasValue: root.hasTonalError
+                        history: root.previousTonalErrors
+                        lowerIsBetter: true
                     }
                 }
             }
 
             // Main Graph — fills leftover viewport height; shrinks on short/narrow screens
-            WaveFormGraph {
-                id: umpGraph
+            SurfaceCard {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.minimumHeight: root.graphMinHeight
+                radius: root.isCompact ? 20 : 28
+                baseColor: Theme.surfaceContainerLowest(root.Material.theme)
+
+            WaveFormGraph {
+                id: umpGraph
+                anchors.fill: parent
+                anchors.margins: root.isCompact ? 8 : 14
+                anchors.topMargin: root.isCompact ? 12 : 18
                 independentScale: true
                 datasetColors: ["#d62728", "#83270b"]
                 lineWidth: root.isCompact ? 3.5 : 5
                 showCueLabels: false
-                cueNLabels: root.referenceFileName.replace(/\([^)]*\)/g, "").replace(/\d+/, "").replace("-", "").split(",").map(s => s.trim())
+                cueNLabels: root.referenceFileName.replace(/\([^)]*\)/g, "").replace(/^[^,]*?\s-\s*/, "").replace(/^\s*\d+\s*/, "").split(",").map(s => s.trim())
+            }
             }
 
 
@@ -1250,7 +1143,7 @@ Page {
                     Item {
                         id: guidedPlayBtn
                         Layout.alignment: Qt.AlignHCenter
-                        readonly property int btnSize: root.isCompact ? (root.isShort ? 56 : 72) : 84
+                        readonly property int btnSize: root.isCompact ? (root.isShort ? 64 : 80) : 96
                         Layout.preferredWidth: btnSize
                         Layout.preferredHeight: btnSize
                         Layout.minimumWidth: btnSize
@@ -1263,15 +1156,13 @@ Page {
                             id: guidedOuterCircle
                             anchors.fill: parent
                             radius: width / 2
-                            color: "transparent"
-                            border.color: Theme.outline(Material.theme)
-                            border.width: 1
+                            color: Qt.alpha(root.guidedTimedOut ? Theme.error(Material.theme) : Theme.primary(Material.theme), 0.14)
                         }
 
                         Rectangle {
                             id: guidedInnerCircle
                             anchors.centerIn: parent
-                            width: parent.width - 8
+                            width: parent.width - 14
                             height: width
                             radius: width / 2
                             color: root.guidedTimedOut ? Theme.error(Material.theme) : Theme.primary(Material.theme)
@@ -1368,7 +1259,7 @@ Page {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: root.isCompact ? 200 : 160
                 Layout.maximumWidth: pageLayout.width
-                Layout.preferredHeight: 50
+                Layout.preferredHeight: 48
                 flat: false
                 visible: (window.settingsApi ? window.settingsApi.autoStopRecording : false)
                          && root.trainingMode === 0
@@ -1377,7 +1268,7 @@ Page {
                     text: root._isVadPaused ? qsTr("Continue") : qsTr("Pause")
                     font.pixelSize: AppScale.fs(16)
                     font.weight: 600
-                    color: pauseVadButton.down ? Qt.darker(Theme.onSecondaryContainer(root.Material.theme), 1.1) : Theme.onSecondaryContainer(root.Material.theme)
+                    color: Theme.onSecondaryContainer(root.Material.theme)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
 
@@ -1387,38 +1278,20 @@ Page {
                 }
 
                 background: Rectangle {
-                    radius: 24
-                    gradient: Gradient {
-                        GradientStop {
-                            position: 0.0
-                            color: pauseVadButton.hovered ? Qt.lighter(Theme.primaryContainer(root.Material.theme), 1.08) : Theme.primaryContainer(root.Material.theme)
-                        }
-                        GradientStop {
-                            position: 1.0
-                            color: pauseVadButton.hovered ? Theme.primaryContainer(root.Material.theme) : Qt.darker(Theme.primaryContainer(root.Material.theme), 1.08)
-                        }
-                    }
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 200
-                        }
-                    }
-
-                    layer.enabled: true
-                    layer.effect: MultiEffect {
-                        shadowEnabled: true
-                        shadowColor: Qt.rgba(0, 0, 0, 0.2)
-                        blur: pauseVadButton.hovered ? 0.3 : 0.2
-                        shadowVerticalOffset: pauseVadButton.hovered ? 6 : 4
-                    }
-
-                    scale: pauseVadButton.pressed ? 0.95 : (pauseVadButton.hovered ? 1.02 : 1.0)
+                    radius: height / 2
+                    color: Theme.secondaryContainer(root.Material.theme)
+                    border.width: pauseVadButton.visualFocus ? 2 : 0
+                    border.color: Theme.primary(root.Material.theme)
+                    scale: pauseVadButton.pressed ? 0.97 : 1.0
                     Behavior on scale {
-                        NumberAnimation {
-                            duration: 100
-                            easing.type: Easing.OutBack
-                        }
+                        NumberAnimation { duration: 100 }
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: Theme.onSecondaryContainer(root.Material.theme)
+                        opacity: pauseVadButton.pressed ? 0.12 : (pauseVadButton.hovered ? 0.08 : 0)
                     }
                 }
 
@@ -1443,7 +1316,7 @@ Page {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: root.isCompact ? 200 : 240
                 Layout.maximumWidth: pageLayout.width
-                Layout.preferredHeight: 50
+                Layout.preferredHeight: 48
                 Layout.bottomMargin: root.pagePadding
                 flat: false
 
@@ -1451,44 +1324,26 @@ Page {
                     text: qsTr("Open Test File")
                     font.pixelSize: AppScale.fs(16)
                     font.weight: 600
-                    color: openTestFileButton.down ? Qt.darker(Theme.onPrimary(root.Material.theme), 1.1) : Theme.onPrimary(root.Material.theme)
+                    color: Theme.primary(root.Material.theme)
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
 
                 background: Rectangle {
-                    radius: 24
-                    gradient: Gradient {
-                        GradientStop {
-                            position: 0.0
-                            color: openTestFileButton.hovered ? Qt.lighter(Theme.primary(root.Material.theme), 1.1) : Theme.primary(root.Material.theme)
-                        }
-                        GradientStop {
-                            position: 1.0
-                            color: openTestFileButton.hovered ? Theme.primary(root.Material.theme) : Qt.darker(Theme.primary(root.Material.theme), 1.2)
-                        }
-                    }
-
-                    Behavior on color {
-                        ColorAnimation {
-                            duration: 200
-                        }
-                    }
-
-                    layer.enabled: true
-                    layer.effect: MultiEffect {
-                        shadowEnabled: true
-                        shadowColor: Qt.rgba(0, 0, 0, 0.2)
-                        blur: openTestFileButton.hovered ? 0.3 : 0.2
-                        shadowVerticalOffset: openTestFileButton.hovered ? 6 : 4
-                    }
-
-                    scale: openTestFileButton.pressed ? 0.95 : (openTestFileButton.hovered ? 1.02 : 1.0)
+                    radius: height / 2
+                    color: "transparent"
+                    border.width: openTestFileButton.visualFocus ? 2 : 1
+                    border.color: openTestFileButton.visualFocus ? Theme.primary(root.Material.theme) : Theme.outline(root.Material.theme)
+                    scale: openTestFileButton.pressed ? 0.97 : 1.0
                     Behavior on scale {
-                        NumberAnimation {
-                            duration: 100
-                            easing.type: Easing.OutBack
-                        }
+                        NumberAnimation { duration: 100 }
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: parent.radius
+                        color: Theme.primary(root.Material.theme)
+                        opacity: openTestFileButton.pressed ? 0.12 : (openTestFileButton.hovered ? 0.08 : 0)
                     }
                 }
 

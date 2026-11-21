@@ -9,7 +9,9 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <algorithm>
+#include <cmath>
 #include <functional>
+#include <limits>
 #include <numeric>
 
 #include "logger.h"
@@ -63,6 +65,11 @@ static QJsonObject itemToJson(const std::shared_ptr<StatisticsItem>& item)
             resultsArray.append(result);
         }
         obj["results"] = resultsArray;
+        QJsonArray errorsArray;
+        for (double error : item->errors) {
+            errorsArray.append(std::isfinite(error) ? QJsonValue(error) : QJsonValue(QJsonValue::Null));
+        }
+        obj["errors"] = errorsArray;
     }
 
     return obj;
@@ -89,6 +96,12 @@ static std::shared_ptr<StatisticsItem> jsonToItem(const QJsonObject& obj)
         for (const QJsonValue& val : resultsArray) {
             item->results.push_back(val.toDouble());
         }
+        // Older files have no errors array; keep it aligned with results.
+        QJsonArray errorsArray = obj["errors"].toArray();
+        for (const QJsonValue& val : errorsArray) {
+            item->errors.push_back(val.isDouble() ? val.toDouble() : std::numeric_limits<double>::quiet_NaN());
+        }
+        item->errors.resize(item->results.size(), std::numeric_limits<double>::quiet_NaN());
     }
 
     return item;
@@ -446,7 +459,7 @@ double Statistics::calculateAverageBest(const std::shared_ptr<StatisticsItem>& i
     }
 }
 
-void Statistics::registerResult(const std::string& filePath, double result)
+void Statistics::registerResult(const std::string& filePath, double result, double error)
 {
     // Load current statistics if not already loaded
     if (!statisticsLoaded) {
@@ -462,9 +475,12 @@ void Statistics::registerResult(const std::string& filePath, double result)
     }
 
     // Add result and keep only last 5
+    fileItem->errors.resize(fileItem->results.size(), std::numeric_limits<double>::quiet_NaN());
     fileItem->results.push_back(result);
+    fileItem->errors.push_back(error);
     if (fileItem->results.size() > 5) {
         fileItem->results.erase(fileItem->results.begin());
+        fileItem->errors.erase(fileItem->errors.begin());
     }
     fileItem->avgResult = calculateAverage(fileItem);
     fileItem->bestResult = std::max(fileItem->bestResult, result);
@@ -543,6 +559,24 @@ std::vector<double> Statistics::getResultsForFile(const std::string& filePath)
     return fileItem->results;
 }
 
+std::vector<double> Statistics::getErrorsForFile(const std::string& filePath)
+{
+    // Load current statistics if not already loaded
+    if (!statisticsLoaded) {
+        cachedStatistics = loadStatistics();
+        statisticsLoaded = true;
+    }
+
+    auto fileItem = findOrCreateItem(filePath, false);
+    if (!fileItem) {
+        return {};
+    }
+
+    std::vector<double> errors = fileItem->errors;
+    errors.resize(fileItem->results.size(), std::numeric_limits<double>::quiet_NaN());
+    return errors;
+}
+
 std::map<std::string, double> Statistics::getAvgResultForFolder(const std::string& folderPath)
 {
     // Load current statistics if not already loaded
@@ -565,7 +599,10 @@ std::map<std::string, double> Statistics::getAvgResultForFolder(const std::strin
     // Update stats to ensure they are fresh
     folderItem->avgResult = calculateAverage(folderItem);
     double avgBest = calculateAverageBest(folderItem);
-    folderItem->completeness = calculateCompleteness(folderItem, folderPath);
+    // folderPath is relative to the app data dir; resolve it so the WAV count
+    // does not depend on the process working directory.
+    const QString folderDiskPath = QDir(Settings::getAppDataDir()).absoluteFilePath(QString::fromStdString(folderPath));
+    folderItem->completeness = calculateCompleteness(folderItem, folderDiskPath.toStdString());
 
     result["avgResult"] = folderItem->avgResult;
     result["avgBestResult"] = avgBest;

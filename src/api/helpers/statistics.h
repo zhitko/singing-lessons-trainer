@@ -5,6 +5,7 @@
 #include <QString>
 #include <algorithm>
 #include <functional>
+#include <limits>
 #include <map>
 #include <memory>
 #include <string>
@@ -44,6 +45,7 @@ struct StatisticsItem {
     int totalFiles = 0; // For folders: total number of files
     int processedFiles = 0; // For folders: number of files with results
     std::vector<double> results; // For files: individual results
+    std::vector<double> errors; // For files: tonal error (%) per result, NaN if unknown
     std::vector<std::shared_ptr<StatisticsItem>> items; // For folders: nested items
 
     StatisticsItem(Type t, const std::string& n)
@@ -95,8 +97,10 @@ public:
      *
      * @param filePath The path to the training file.
      * @param result The training result (score) as a double.
+     * @param error The tonal error (%) for this result, NaN if unknown.
      */
-    static void registerResult(const std::string& filePath, double result);
+    static void registerResult(const std::string& filePath, double result,
+                               double error = std::numeric_limits<double>::quiet_NaN());
 
     /**
      * Gets the average result for a specific file.
@@ -121,6 +125,14 @@ public:
      * @return A vector of recent results (oldest -> newest), empty if none.
      */
     static std::vector<double> getResultsForFile(const std::string& filePath);
+
+    /**
+     * Gets tonal errors matching getResultsForFile() element by element.
+     *
+     * @param filePath The path to the training file.
+     * @return A vector of errors (oldest -> newest), NaN where unknown.
+     */
+    static std::vector<double> getErrorsForFile(const std::string& filePath);
 
     /**
      * Gets the average result, average best result, and completeness for all files in a specific folder.

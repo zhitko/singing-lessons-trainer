@@ -12,7 +12,8 @@ import "../utils"
 
 Page {
     id: recordsPage
-    title: qsTr("Records")
+    title: qsTr("My recordings")
+    readonly property string navId: "records"
 
     Material.theme: window.theme
 

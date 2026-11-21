@@ -3,6 +3,7 @@
 
 #include <QCoreApplication>
 #include <QFileInfo>
+#include <cmath>
 
 StatisticsApi::StatisticsApi(QObject* parent)
     : QObject(parent)
@@ -26,10 +27,10 @@ static QString removeApplicationPath(const QString& filePath)
     return normalizedPath;
 }
 
-void StatisticsApi::registerResult(const QString& filePath, double result)
+void StatisticsApi::registerResult(const QString& filePath, double result, double error)
 {
     QString relativePath = removeApplicationPath(filePath);
-    Statistics::registerResult(relativePath.toStdString(), result);
+    Statistics::registerResult(relativePath.toStdString(), result, error);
     emit resultRegistered(filePath, result);
     emit statisticsUpdated();
 }
@@ -54,6 +55,19 @@ QVariantList StatisticsApi::getResultsForFile(const QString& filePath)
     QVariantList out;
     for (double value : results) {
         out.push_back(value);
+    }
+
+    return out;
+}
+
+QVariantList StatisticsApi::getErrorsForFile(const QString& filePath)
+{
+    QString relativePath = removeApplicationPath(filePath);
+    const std::vector<double> errors = Statistics::getErrorsForFile(relativePath.toStdString());
+
+    QVariantList out;
+    for (double value : errors) {
+        out.push_back(std::isfinite(value) ? QVariant(value) : QVariant());
     }
 
     return out;

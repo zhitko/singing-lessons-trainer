@@ -24,8 +24,10 @@ public:
      *
      * @param filePath The path to the training file.
      * @param result The training result (score) as a double.
+     * @param error The tonal error (%) for this result; omit if unknown.
      */
-    Q_INVOKABLE void registerResult(const QString& filePath, double result);
+    Q_INVOKABLE void registerResult(const QString& filePath, double result,
+                                    double error = std::numeric_limits<double>::quiet_NaN());
 
     /**
      * Gets the average result for a specific file.
@@ -50,6 +52,14 @@ public:
      * @return A QVariantList of double values.
      */
     Q_INVOKABLE QVariantList getResultsForFile(const QString& filePath);
+
+    /**
+     * Gets tonal errors aligned with getResultsForFile(); unknown values are null.
+     *
+     * @param filePath The path to the training file.
+     * @return A QVariantList of double values or nulls.
+     */
+    Q_INVOKABLE QVariantList getErrorsForFile(const QString& filePath);
 
     /**
      * Gets the average result and completeness for all files in a specific folder.

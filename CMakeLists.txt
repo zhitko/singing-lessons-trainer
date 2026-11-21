@@ -211,6 +211,12 @@ qt_add_qml_module(appsinging-lessons-trainer
         ui/components/CircularProgress.qml
         ui/components/StatBox.qml
         ui/components/StartTrainingButton.qml
+        ui/components/MusicStaff.qml
+        ui/components/NavigationItem.qml
+        ui/components/IconButton.qml
+        ui/components/SurfaceCard.qml
+        ui/components/ScoreRing.qml
+        ui/components/ResultMetric.qml
         ui/components/SearchActionBar.qml
         ui/components/ListSectionHeader.qml
         ui/components/EmptyState.qml

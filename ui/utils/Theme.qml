@@ -538,6 +538,30 @@ Item {
         return theme === Material.Dark ? darkTheme.surfaceContainerHighest : lightTheme.surfaceContainerHighest;
     }
 
+    // ── Music-tinted accents ──────────────────────────────────────────────────
+    // Hero surfaces blend primary into tertiary so every palette gets a warm,
+    // stage-light gradient without adding new palette entries.
+    function heroStart(theme) {
+        return theme === Material.Dark ? Qt.darker(primaryContainer(theme), 1.1) : primary(theme);
+    }
+    function heroEnd(theme) {
+        return theme === Material.Dark ? tertiaryContainer(theme) : Qt.tint(tertiary(theme), Qt.alpha(primary(theme), 0.25));
+    }
+    function onHero(theme) {
+        return theme === Material.Dark ? onPrimaryContainer(theme) : onPrimary(theme);
+    }
+
+    // One color scale for lesson scores everywhere (lists, rings, results).
+    function scoreColor(score, theme) {
+        if (score >= 90)
+            return theme === Material.Dark ? "#81C784" : "#2E7D32";
+        if (score >= 70)
+            return theme === Material.Dark ? "#FFB74D" : "#E65100";
+        if (score > 0)
+            return theme === Material.Dark ? "#E57373" : "#C62828";
+        return outlineVariant(theme);
+    }
+
     // Compatibility helpers
     function accent(theme) {
         return secondary(theme);

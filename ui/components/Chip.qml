@@ -19,13 +19,13 @@ Rectangle {
     signal deleted
 
     // MD3 Chip styling
-    implicitWidth: layout.implicitWidth + 16
-    implicitHeight: 35
-    radius: Theme.shapeExtraSmall
+    implicitWidth: layout.implicitWidth + 24
+    implicitHeight: 34
+    radius: Theme.shapeSmall
 
     // Color based on selection state
-    color: selected ? Theme.secondaryContainer(Material.theme) : Theme.surfaceContainerHigh(Material.theme)
-    border.color: selected ? "transparent" : Theme.outline(Material.theme)
+    color: selected ? Theme.secondaryContainer(Material.theme) : "transparent"
+    border.color: selected ? "transparent" : Theme.outlineVariant(Material.theme)
     border.width: selected ? 0 : 1
 
     // MD3 Elevation 0 (no shadow for chips)
@@ -49,15 +49,15 @@ Rectangle {
     RowLayout {
         id: layout
         anchors.fill: parent
-        anchors.leftMargin: 8
-        anchors.rightMargin: 8
+        anchors.leftMargin: 12
+        anchors.rightMargin: 12
         spacing: 8
         Layout.alignment: Qt.AlignVCenter
 
         // Icon (optional)
         Text {
-            visible: chip.icon !== ""
-            text: chip.icon
+            visible: chip.icon !== "" || chip.selected
+            text: chip.selected ? Icons.faCheck : chip.icon
             font.family: Icons.familySolid
             font.weight: 900
             font.pixelSize: AppScale.fs(14)
@@ -68,7 +68,7 @@ Rectangle {
         // Text label
         Text {
             text: chip.text
-            font.pixelSize: AppScale.fs(12)
+            font.pixelSize: AppScale.fs(13)
             font.weight: Font.Medium
             color: selected ? Theme.onSecondaryContainer(Material.theme) : Theme.onSurface(Material.theme)
             elide: Text.ElideRight

@@ -9,6 +9,7 @@ import "../components"
 Page {
     id: root
     title: qsTr("Settings")
+    readonly property string navId: "settings"
 
     readonly property var settingsApi: ApplicationWindow.window ? ApplicationWindow.window.settingsApi : null
 

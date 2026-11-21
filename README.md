@@ -35,13 +35,13 @@ The application works on a **template-based training** model:
 ### 1. Home Screen
 
 The home screen greets you with:
-- **"Start Training"** — the main call to action.
-- **Live statistics**: average accuracy, number of mastered files, and files trained vs. total.
-- **Circular progress ring** showing your overall training completion across the template library.
+- **Practice studio** with a musical staff and a microphone-led **"Start singing"** button (also accessible by keyboard).
+- **Live statistics**: average melodic similarity, lessons mastered, and lessons explored vs. total.
+- **Repertoire progress** showing your overall completion across the lesson library.
 
 ### 2. Selecting a Template
 
-Tapping **Start Training** navigates to the **Template Categories** browser:
+Tapping **Start singing** navigates to the **Lesson library**:
 
 - Templates are organized in **folders** (categories and subcategories).
 - Each folder can be drilled into; leaf folders show the individual WAV files.

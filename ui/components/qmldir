@@ -7,6 +7,12 @@ DeleteButton DeleteButton.qml
 WaveFormGraph WaveFormGraph.qml
 Spectrogram2DGraph Spectrogram2DGraph.qml
 StartTrainingButton StartTrainingButton.qml
+MusicStaff MusicStaff.qml
+NavigationItem NavigationItem.qml
+IconButton IconButton.qml
+SurfaceCard SurfaceCard.qml
+ScoreRing ScoreRing.qml
+ResultMetric ResultMetric.qml
 ListItem ListItem.qml
 CircularProgress CircularProgress.qml
 SearchBar SearchBar.qml

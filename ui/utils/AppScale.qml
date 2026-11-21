@@ -37,10 +37,19 @@ QtObject {
     readonly property bool isShort: viewHeight < shortHeight
     readonly property bool isWide: viewWidth >= 720
 
+    // Whole window width in design-space pixels. Bound from Main.qml.
+    // Navigation switches from a bottom bar to a side rail at this width.
+    property real windowWidth: designWidth
+    readonly property bool useNavigationRail: windowWidth >= 720
+    // Two-pane layouts (e.g. library + lessons) need room for both panes.
+    readonly property bool useTwoPane: viewWidth >= 900
+    // Content on wide windows is centered and capped at this width.
+    readonly property int maxContentWidth: 1120
+
     readonly property int pagePadding: isCompact ? 12 : (isNarrow ? 16 : 24)
     readonly property int pageSpacing: isCompact ? 12 : (isNarrow ? 16 : 24)
     readonly property int listSpacing: isCompact ? 6 : 10
-    readonly property int listItemHeight: isCompact ? 80 : 100
+    readonly property int listItemHeight: Math.round((isCompact ? 76 : 84) * Math.max(1, Math.min(fontScale, 1.5)))
     readonly property int searchBarHeight: isCompact ? 48 : 56
 
     // Font size multiplier from user settings (1.0 = Normal, 1.5 = Big, 2.0 = Large).
