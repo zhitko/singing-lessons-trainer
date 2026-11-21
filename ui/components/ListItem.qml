@@ -1,0 +1,236 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Controls.Material 6.8
+import QtQuick.Effects
+import by.intontrainer.statistics 1.0
+import "../utils"
+
+Item {
+    id: root
+
+    property string itemData: ""
+    property int itemIndex: 0
+    property string icon: Icons.faBook
+    property string filePath: ""
+    property bool isFolder: false
+    property real avgScore: 0
+
+    signal clicked
+
+    StatisticsApi {
+        id: statisticsApi
+    }
+
+    Component.onCompleted: {
+        // Force update of the UI by re-evaluating bindings
+        updateStatistics();
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            // Reload statistics when component becomes visible (e.g., when going back)
+            updateStatistics();
+        }
+    }
+
+    function updateStatistics() {
+        let completeness = 0;
+        let totalFiles = 0;
+        let processedFiles = 0;
+        let avgScoreVal = 0;
+
+        if (root.isFolder) {
+            Logger.debug("Updating stats for folder: " + root.filePath);
+            let folderStats = statisticsApi.getAvgResultForFolder(root.filePath);
+            completeness = folderStats.completeness;
+            totalFiles = folderStats.totalFiles;
+            processedFiles = folderStats.processedFiles;
+            avgScoreVal = folderStats.avgBestResult;
+            Logger.debug("Calculated completeness for folder: " + completeness + " processed: " + processedFiles + " total: " + totalFiles);
+            percentageText.text = processedFiles + "/" + totalFiles + " (" + Math.round(completeness) + "% " + qsTr("Progress") + ")";
+        } else {
+            Logger.debug("Updating stats for file: " + root.filePath);
+            avgScoreVal = statisticsApi.getBestResultForFile(root.filePath);
+            Logger.debug("Calculated best result for file: " + avgScoreVal);
+
+            if (avgScoreVal >= 90)
+                percentageText.text = qsTr("Excellent");
+            else if (avgScoreVal >= 70)
+                percentageText.text = qsTr("Good");
+            else if (avgScoreVal >= 40)
+                percentageText.text = qsTr("Medium");
+            else if (avgScoreVal >= 20)
+                percentageText.text = qsTr("Bad");
+            else if (avgScoreVal > 0)
+                percentageText.text = qsTr("Failure");
+            else
+                percentageText.text = qsTr("Not practiced yet");
+        }
+        root.avgScore = avgScoreVal;
+
+        // Update main progress circle on the RIGHT with Best Score (Accuracy)
+        progressCircle.progress = Math.min(avgScoreVal / 100, 1.0);
+
+        // Update circle color based on score
+        if (avgScoreVal >= 90)
+            progressCircle.color = "#4caf50";
+        else
+        // Green
+        if (avgScoreVal >= 70)
+            progressCircle.color = "#ff9800";
+        else
+        // Orange
+        if (avgScoreVal >= 20)
+            progressCircle.color = "#ef5350";
+        else
+        if (avgScoreVal > 0)
+            progressCircle.color = "#ef5350";
+        else
+            // Red
+            progressCircle.color = Theme.primary(Material.theme);
+    }
+
+    width: ListView.view ? ListView.view.width : 0
+    height: AppScale.listItemHeight
+
+    Rectangle {
+        id: cardBg
+        anchors.fill: parent
+        anchors.margins: 4 // Space for shadow
+        anchors.rightMargin: 8
+        anchors.leftMargin: 8
+        radius: 12 // MD3 medium shape token
+        color: mouseArea.containsMouse ? Theme.surfaceContainerLow(Material.theme) : Theme.surface(Material.theme)
+
+        // MD3 Elevation 1 - base elevation for cards
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: Qt.rgba(0, 0, 0, 0.12)
+            blur: 0.34
+            shadowVerticalOffset: 2
+            shadowHorizontalOffset: 0
+        }
+
+        // MD3 outline for surface containers
+        border.color: Theme.outline(Material.theme)
+        border.width: 1
+
+        // MD3 State Layer - hover effect (8% opacity)
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            color: Theme.onSurface(Material.theme)
+            opacity: mouseArea.containsMouse ? 0.08 : 0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 150
+                    easing.type: Easing.OutQuad
+                }
+            }
+        }
+
+        // Icon Circle (Left)
+        Rectangle {
+            id: iconCircle
+            width: AppScale.isCompact ? 40 : 50
+            height: AppScale.isCompact ? 40 : 50
+            radius: width / 2
+            anchors.left: parent.left
+            anchors.leftMargin: AppScale.isCompact ? 12 : 25
+            anchors.verticalCenter: parent.verticalCenter
+            color: {
+                var colors = [Theme.primaryContainer(Material.theme), Theme.secondaryContainer(Material.theme), Theme.tertiaryContainer(Material.theme)];
+                return colors[root.itemIndex % colors.length];
+            }
+
+            Text {
+                anchors.centerIn: parent
+                text: root.icon
+                font.family: Icons.familySolid
+                font.weight: Font.Black
+                font.pixelSize: AppScale.fs(18)
+                color: Theme.onPrimaryContainer(Material.theme)
+            }
+        }
+
+        // Text Info
+        ColumnLayout {
+            anchors.left: iconCircle.right
+            anchors.leftMargin: 16
+            anchors.right: statusIndicatorContainer.left
+            anchors.rightMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 4
+
+            Text {
+                text: root.itemData // Folder name
+                font.pixelSize: AppScale.fs(AppScale.isCompact ? 15 : 18)
+                font.weight: 600
+                color: Theme.onSurface(Material.theme)
+                Layout.fillWidth: true
+                elide: Text.ElideRight
+            }
+
+            RowLayout {
+                spacing: 8
+                Text {
+                    text: Icons.faSquareCheck
+                    font.family: Icons.familySolid
+                    font.weight: Font.Black
+                    color: Theme.onSurfaceVariant(Material.theme)
+                }
+                Text {
+                    id: percentageText
+                    color: Theme.onSurfaceVariant(Material.theme)
+                    font.pixelSize: AppScale.fs(14)
+                }
+            }
+        }
+
+        // Progress Indicator / Status
+        Item {
+            id: statusIndicatorContainer
+            width: AppScale.isCompact ? 56 : 76
+            height: AppScale.isCompact ? 56 : 76
+            anchors.right: parent.right
+            anchors.rightMargin: AppScale.isCompact ? 10 : 28
+            anchors.verticalCenter: parent.verticalCenter
+
+            Item {
+                anchors.fill: parent
+
+                CircularProgress {
+                    id: progressCircle
+                    anchors.centerIn: parent
+                    width: parent.width
+                    height: parent.height
+                    lineWidth: 6
+                    color: Theme.primary(Material.theme)
+                    backgroundColor: Theme.surfaceContainerHighest(Material.theme)
+
+                    Text {
+                        id: progressText
+                        text: root.avgScore > 0 ? Math.round(root.avgScore) + "%" : "--"
+                        font.pixelSize: AppScale.fs(AppScale.isCompact ? 13 : 16)
+                        font.weight: Font.Bold
+                        color: Theme.onSurfaceVariant(Material.theme)
+                        anchors.centerIn: parent
+                    }
+                }
+            }
+        }
+
+        MouseArea {
+            id: mouseArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                root.clicked();
+            }
+        }
+    }
+}

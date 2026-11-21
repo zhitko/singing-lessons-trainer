@@ -1,0 +1,164 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import QtQuick.Controls.Material 6.8
+import by.intontrainer.audio 1.0
+import "../utils"
+
+ColumnLayout {
+    id: root
+    spacing: compact ? 4 : 8
+
+    property string filePath: ""
+    property string icon: Icons.faPlay
+    property string text: ""
+    property bool isPlaying: false
+    property bool compact: false
+    property alias enabled: button.enabled
+    enabled: filePath !== ""
+    signal clicked
+
+    function trigger() {
+        if (audioApi.isPlaying) {
+            audioApi.stopPlayback();
+        } else if (root.filePath !== "") {
+            audioApi.play(root.filePath);
+        }
+        root.clicked();
+    }
+
+    AudioApi {
+        id: audioApi
+    }
+
+    Connections {
+        target: audioApi
+
+        function onIsPlayingChanged() {
+            if (audioApi.isPlaying) {
+                root.isPlaying = true;
+                delayTimer.stop();
+            } else {
+                delayTimer.restart();
+            }
+        }
+    }
+
+    Timer {
+        id: delayTimer
+        interval: 100
+        onTriggered: root.isPlaying = false
+    }
+
+    RoundButton {
+        id: button
+        Layout.alignment: Qt.AlignHCenter
+        Layout.preferredWidth: root.compact ? 48 : 56
+        Layout.preferredHeight: root.compact ? 48 : 56
+        font.family: Icons.familySolid
+        font.weight: Font.Black
+        text: root.isPlaying ? Icons.faStop : root.icon
+        font.pixelSize: AppScale.fs(root.compact ? 16 : 20)
+        Material.background: root.isPlaying ? Theme.errorContainer(Material.theme) : Theme.primaryContainer(Material.theme)
+        Material.foreground: root.isPlaying ? Theme.onErrorContainer(Material.theme) : Theme.onPrimaryContainer(Material.theme)
+
+        hoverEnabled: true
+
+        // MD3 State Layer overlay for hover state (8% opacity)
+        background: Rectangle {
+            radius: button.radius
+            color: button.Material.backgroundColor
+
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: button.Material.foreground
+                opacity: button.hovered && !root.isPlaying ? 0.08 : 0
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.OutQuad
+                    }
+                }
+            }
+        }
+
+        onClicked: {
+            if (audioApi.isPlaying) {
+                audioApi.stopPlayback();
+            } else if (root.filePath !== "") {
+                audioApi.play(root.filePath);
+            }
+            root.clicked();
+        }
+
+        // Pulse Animation
+        Rectangle {
+            id: pulse
+            anchors.centerIn: parent
+            width: parent.width
+            height: parent.height
+            radius: width / 2
+            color: button.Material.background
+            opacity: 0
+            z: -1
+            scale: 1.0
+
+            SequentialAnimation {
+                id: pulseAnimation
+                running: root.isPlaying
+                loops: Animation.Infinite
+
+                onRunningChanged: {
+                    if (!running) {
+                        pulse.scale = 1.0;
+                        pulse.opacity = 0;
+                    }
+                }
+
+                ParallelAnimation {
+                    NumberAnimation {
+                        target: pulse
+                        property: "scale"
+                        from: 1.0
+                        to: 1.6
+                        duration: 1200
+                        easing.type: Easing.OutCubic
+                    }
+                    NumberAnimation {
+                        target: pulse
+                        property: "opacity"
+                        from: 0.6
+                        to: 0
+                        duration: 1200
+                        easing.type: Easing.OutCubic
+                    }
+                }
+                PropertyAction {
+                    target: pulse
+                    property: "scale"
+                    value: 1.0
+                }
+                PropertyAction {
+                    target: pulse
+                    property: "opacity"
+                    value: 0
+                }
+            }
+        }
+    }
+
+    Text {
+        Layout.alignment: Qt.AlignHCenter
+        Layout.fillWidth: true
+        text: root.text
+        font.pixelSize: AppScale.fs(root.compact ? 13 : 18)
+        font.weight: 500
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.WordWrap
+        maximumLineCount: 2
+        elide: Text.ElideRight
+        color: Theme.onSurface(Material.theme)
+    }
+}

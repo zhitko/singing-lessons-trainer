@@ -1,0 +1,1793 @@
+#include "settingsapi.h"
+#include "helpers/logger.h"
+#include "helpers/settings.h"
+#include "helpers/statistics.h"
+#include <algorithm>
+#include <cmath>
+#include <QCoreApplication>
+#include <QGuiApplication>
+#include <QFont>
+#include <QDebug>
+#include <QDir>
+#include <QQmlEngine>
+#include <QFile>
+#include <QStandardPaths>
+
+SettingsApi::SettingsApi(QObject* parent)
+    : QObject(parent)
+{
+    load();
+}
+
+QString SettingsApi::language() const
+{
+    LOG_DEBUG() << "Start: language";
+    QString result = QString::fromStdString(m_settings.language);
+    LOG_DEBUG() << "Finish: language - result=" << result;
+    return result;
+}
+
+void SettingsApi::setLanguage(const QString& language)
+{
+    LOG_DEBUG() << "Start: setLanguage - language=" << language;
+    if (m_settings.language != language.toStdString()) {
+        m_settings.language = language.toStdString();
+        save();
+        updateTranslator();
+        emit languageChanged();
+    }
+    LOG_DEBUG() << "Finish: setLanguage";
+}
+
+QString SettingsApi::languageTitle() const
+{
+    LOG_DEBUG() << "Start: languageTitle";
+    QString result = QString::fromStdString(m_settings.languageTitle);
+    LOG_DEBUG() << "Finish: languageTitle - result=" << result;
+    return result;
+}
+
+void SettingsApi::setLanguageTitle(const QString& languageTitle)
+{
+    LOG_DEBUG() << "Start: setLanguageTitle - languageTitle=" << languageTitle;
+    if (m_settings.languageTitle != languageTitle.toStdString()) {
+        m_settings.languageTitle = languageTitle.toStdString();
+        save();
+        emit languageTitleChanged();
+    }
+    LOG_DEBUG() << "Finish: setLanguageTitle";
+}
+
+QString SettingsApi::theme() const
+{
+    LOG_DEBUG() << "Start: theme";
+    QString result = QString::fromStdString(m_settings.theme);
+    LOG_DEBUG() << "Finish: theme - result=" << result;
+    return result;
+}
+
+void SettingsApi::setTheme(const QString& theme)
+{
+    LOG_DEBUG() << "Start: setTheme - theme=" << theme;
+    if (m_settings.theme != theme.toStdString()) {
+        m_settings.theme = theme.toStdString();
+        save();
+        emit themeChanged();
+    }
+    LOG_DEBUG() << "Finish: setTheme";
+}
+
+double SettingsApi::fontSizeMultiplier() const
+{
+    LOG_DEBUG() << "Start: fontSizeMultiplier";
+    double result = m_settings.fontSizeMultiplier;
+    LOG_DEBUG() << "Finish: fontSizeMultiplier - result=" << result;
+    return result;
+}
+
+void SettingsApi::setFontSizeMultiplier(double fontSizeMultiplier)
+{
+    LOG_DEBUG() << "Start: setFontSizeMultiplier - fontSizeMultiplier=" << fontSizeMultiplier;
+    double clamped = std::clamp(fontSizeMultiplier, 1.0, 2.0);
+    if (qAbs(m_settings.fontSizeMultiplier - clamped) >= 0.0001) {
+        m_settings.fontSizeMultiplier = clamped;
+        // Propagate the new base font size to the entire Qt application so all
+        // Labels and Text items scale — even those with explicit font.pixelSize.
+        QFont appFont = QGuiApplication::font();
+        appFont.setPixelSize(qRound(14 * clamped));
+        QGuiApplication::setFont(appFont);
+        save();
+        emit fontSizeMultiplierChanged();
+    }
+    LOG_DEBUG() << "Finish: setFontSizeMultiplier";
+}
+
+QString SettingsApi::primaryColor() const
+{
+    LOG_DEBUG() << "Start: primaryColor";
+    QString result = QString::fromStdString(m_settings.primaryColor);
+    LOG_DEBUG() << "Finish: primaryColor - result=" << result;
+    return result;
+}
+
+void SettingsApi::setPrimaryColor(const QString& primaryColor)
+{
+    LOG_DEBUG() << "Start: setPrimaryColor - primaryColor=" << primaryColor;
+    if (m_settings.primaryColor != primaryColor.toStdString()) {
+        m_settings.primaryColor = primaryColor.toStdString();
+        save();
+        emit primaryColorChanged();
+    }
+    LOG_DEBUG() << "Finish: setPrimaryColor";
+}
+
+bool SettingsApi::showNavigationMenu() const
+{
+    LOG_DEBUG() << "Start: showNavigationMenu";
+    bool result = m_settings.showNavigationMenu;
+    LOG_DEBUG() << "Finish: showNavigationMenu - result=" << result;
+    return result;
+}
+
+void SettingsApi::setShowNavigationMenu(bool showNavigationMenu)
+{
+    LOG_DEBUG() << "Start: setShowNavigationMenu - showNavigationMenu=" << showNavigationMenu;
+    if (m_settings.showNavigationMenu != showNavigationMenu) {
+        m_settings.showNavigationMenu = showNavigationMenu;
+        save();
+        emit showNavigationMenuChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowNavigationMenu";
+}
+
+bool SettingsApi::showVadA() const
+{
+    LOG_DEBUG() << "Start: showVadA";
+    bool result = m_settings.showVadA;
+    LOG_DEBUG() << "Finish: showVadA - result=" << result;
+    return result;
+}
+
+void SettingsApi::setShowVadA(bool show)
+{
+    LOG_DEBUG() << "Start: setShowVadA - show=" << show;
+    if (m_settings.showVadA != show) {
+        m_settings.showVadA = show;
+        save();
+        emit showVadAChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowVadA";
+}
+
+bool SettingsApi::showVadU() const
+{
+    LOG_DEBUG() << "Start: showVadU";
+    bool result = m_settings.showVadU;
+    LOG_DEBUG() << "Finish: showVadU - result=" << result;
+    return result;
+}
+
+void SettingsApi::setShowVadU(bool show)
+{
+    LOG_DEBUG() << "Start: setShowVadU - show=" << show;
+    if (m_settings.showVadU != show) {
+        m_settings.showVadU = show;
+        save();
+        emit showVadUChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowVadU";
+}
+
+bool SettingsApi::showVadV() const
+{
+    LOG_DEBUG() << "Start: showVadV";
+    bool result = m_settings.showVadV;
+    LOG_DEBUG() << "Finish: showVadV - result=" << result;
+    return result;
+}
+
+void SettingsApi::setShowVadV(bool show)
+{
+    LOG_DEBUG() << "Start: setShowVadV - show=" << show;
+    if (m_settings.showVadV != show) {
+        m_settings.showVadV = show;
+        save();
+        emit showVadVChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowVadV";
+}
+
+bool SettingsApi::showVadCorr() const
+{
+    LOG_DEBUG() << "Start: showVadCorr";
+    bool result = m_settings.showVadCorr;
+    LOG_DEBUG() << "Finish: showVadCorr - result=" << result;
+    return result;
+}
+
+void SettingsApi::setShowVadCorr(bool show)
+{
+    LOG_DEBUG() << "Start: setShowVadCorr - show=" << show;
+    if (m_settings.showVadCorr != show) {
+        m_settings.showVadCorr = show;
+        save();
+        emit showVadCorrChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowVadCorr";
+}
+
+bool SettingsApi::autoStopRecording() const
+{
+    LOG_DEBUG() << "Start: autoStopRecording";
+    bool result = m_settings.autoStopRecording;
+    LOG_DEBUG() << "Finish: autoStopRecording - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAutoStopRecording(bool autoStopRecording)
+{
+    LOG_DEBUG() << "Start: setAutoStopRecording - autoStopRecording=" << autoStopRecording;
+    if (m_settings.autoStopRecording != autoStopRecording) {
+        m_settings.autoStopRecording = autoStopRecording;
+        save();
+        emit autoStopRecordingChanged();
+    }
+    LOG_DEBUG() << "Finish: setAutoStopRecording";
+}
+
+bool SettingsApi::autoCalibrate() const
+{
+    LOG_DEBUG() << "Start: autoCalibrate";
+    bool result = m_settings.autoCalibrate;
+    LOG_DEBUG() << "Finish: autoCalibrate - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAutoCalibrate(bool autoCalibrate)
+{
+    LOG_DEBUG() << "Start: setAutoCalibrate - autoCalibrate=" << autoCalibrate;
+    if (m_settings.autoCalibrate != autoCalibrate) {
+        m_settings.autoCalibrate = autoCalibrate;
+        save();
+        emit autoCalibrateChanged();
+    }
+    LOG_DEBUG() << "Finish: setAutoCalibrate";
+}
+
+int SettingsApi::vadCalibrationDurationMs() const
+{
+    LOG_DEBUG() << "Start: vadCalibrationDurationMs";
+    int result = m_settings.vadCalibrationDurationMs;
+    LOG_DEBUG() << "Finish: vadCalibrationDurationMs - result=" << result;
+    return result;
+}
+
+void SettingsApi::setVadCalibrationDurationMs(int vadCalibrationDurationMs)
+{
+    LOG_DEBUG() << "Start: setVadCalibrationDurationMs - vadCalibrationDurationMs=" << vadCalibrationDurationMs;
+    if (m_settings.vadCalibrationDurationMs != vadCalibrationDurationMs) {
+        m_settings.vadCalibrationDurationMs = vadCalibrationDurationMs;
+        save();
+        emit vadCalibrationDurationMsChanged();
+    }
+    LOG_DEBUG() << "Finish: setVadCalibrationDurationMs";
+}
+
+int SettingsApi::autoStopSilenceDuration() const
+{
+    LOG_DEBUG() << "Start: autoStopSilenceDuration";
+    int result = m_settings.autoStopSilenceDuration;
+    LOG_DEBUG() << "Finish: autoStopSilenceDuration - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAutoStopSilenceDuration(int autoStopSilenceDuration)
+{
+    LOG_DEBUG() << "Start: setAutoStopSilenceDuration - autoStopSilenceDuration=" << autoStopSilenceDuration;
+    if (m_settings.autoStopSilenceDuration != autoStopSilenceDuration) {
+        m_settings.autoStopSilenceDuration = autoStopSilenceDuration;
+        save();
+        emit autoStopSilenceDurationChanged();
+    }
+    LOG_DEBUG() << "Finish: setAutoStopSilenceDuration";
+}
+
+double SettingsApi::minimumRecordLengthPercent() const
+{
+    LOG_DEBUG() << "Start: minimumRecordLengthPercent";
+    double result = m_settings.minimumRecordLengthPercent;
+    LOG_DEBUG() << "Finish: minimumRecordLengthPercent - result=" << result;
+    return result;
+}
+
+void SettingsApi::setMinimumRecordLengthPercent(double minimumRecordLengthPercent)
+{
+    LOG_DEBUG() << "Start: setMinimumRecordLengthPercent - minimumRecordLengthPercent=" << minimumRecordLengthPercent;
+    double clamped = std::clamp(minimumRecordLengthPercent, 0.0, 1.0);
+    if (qAbs(m_settings.minimumRecordLengthPercent - clamped) >= 0.0001) {
+        m_settings.minimumRecordLengthPercent = clamped;
+        save();
+        emit minimumRecordLengthPercentChanged();
+    }
+    LOG_DEBUG() << "Finish: setMinimumRecordLengthPercent";
+}
+
+int SettingsApi::vadMethod() const
+{
+    LOG_DEBUG() << "Start: vadMethod";
+    int result = m_settings.vadMethod;
+    LOG_DEBUG() << "Finish: vadMethod - result=" << result;
+    return result;
+}
+
+void SettingsApi::setVadMethod(int method)
+{
+    LOG_DEBUG() << "Start: setVadMethod - method=" << method;
+    if (m_settings.vadMethod != method) {
+        m_settings.vadMethod = method;
+        save();
+        emit vadMethodChanged();
+    }
+    LOG_DEBUG() << "Finish: setVadMethod";
+}
+
+double SettingsApi::vadThreshold() const
+{
+    LOG_DEBUG() << "Start: vadThreshold";
+    double result = m_settings.vadThreshold;
+    LOG_DEBUG() << "Finish: vadThreshold - result=" << result;
+    return result;
+}
+
+void SettingsApi::setVadThreshold(double vadThreshold)
+{
+    LOG_DEBUG() << "Start: setVadThreshold - vadThreshold=" << vadThreshold;
+    if (qAbs(m_settings.vadThreshold - vadThreshold) >= 0.001) {
+        m_settings.vadThreshold = vadThreshold;
+        save();
+        emit vadThresholdChanged();
+    }
+    LOG_DEBUG() << "Finish: setVadThreshold";
+}
+
+double SettingsApi::autoCorrThreshold() const
+{
+    LOG_DEBUG() << "Start: autoCorrThreshold";
+    double result = m_settings.autoCorrThreshold;
+    LOG_DEBUG() << "Finish: autoCorrThreshold - result=" << result;
+    return result;
+}
+
+double SettingsApi::autoCorrEnergyThreshold() const
+{
+    return m_settings.autoCorrEnergyThreshold;
+}
+
+void SettingsApi::setAutoCorrEnergyThreshold(double threshold)
+{
+    if (!std::isfinite(threshold) || threshold <= 0.0)
+        return;
+    if (m_settings.autoCorrEnergyThreshold != threshold) {
+        m_settings.autoCorrEnergyThreshold = threshold;
+        save();
+        emit autoCorrEnergyThresholdChanged();
+    }
+}
+
+void SettingsApi::setAutoCorrThreshold(double threshold)
+{
+    LOG_DEBUG() << "Start: setAutoCorrThreshold - threshold=" << threshold;
+    if (qAbs(m_settings.autoCorrThreshold - threshold) >= 0.001) {
+        m_settings.autoCorrThreshold = threshold;
+        save();
+        emit autoCorrThresholdChanged();
+    }
+    LOG_DEBUG() << "Finish: setAutoCorrThreshold";
+}
+
+double SettingsApi::autoCorrThresholdK() const
+{
+    LOG_DEBUG() << "Start: autoCorrThresholdK";
+    double result = m_settings.autoCorrThresholdK;
+    LOG_DEBUG() << "Finish: autoCorrThresholdK - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAutoCorrThresholdK(double thresholdK)
+{
+    LOG_DEBUG() << "Start: setAutoCorrThresholdK - thresholdK=" << thresholdK;
+    if (qAbs(m_settings.autoCorrThresholdK - thresholdK) >= 0.001) {
+        m_settings.autoCorrThresholdK = thresholdK;
+        save();
+        emit autoCorrThresholdKChanged();
+    }
+    LOG_DEBUG() << "Finish: setAutoCorrThresholdK";
+}
+
+double SettingsApi::autoCorrMinF0() const
+{
+    LOG_DEBUG() << "Start: autoCorrMinF0";
+    double result = m_settings.autoCorrMinF0;
+    LOG_DEBUG() << "Finish: autoCorrMinF0 - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAutoCorrMinF0(double minF0)
+{
+    LOG_DEBUG() << "Start: setAutoCorrMinF0 - minF0=" << minF0;
+    if (qAbs(m_settings.autoCorrMinF0 - minF0) >= 0.0001) {
+        m_settings.autoCorrMinF0 = minF0;
+        save();
+        emit autoCorrMinF0Changed();
+    }
+    LOG_DEBUG() << "Finish: setAutoCorrMinF0";
+}
+
+double SettingsApi::autoCorrMaxF0() const
+{
+    LOG_DEBUG() << "Start: autoCorrMaxF0";
+    double result = m_settings.autoCorrMaxF0;
+    LOG_DEBUG() << "Finish: autoCorrMaxF0 - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAutoCorrMaxF0(double maxF0)
+{
+    LOG_DEBUG() << "Start: setAutoCorrMaxF0 - maxF0=" << maxF0;
+    if (qAbs(m_settings.autoCorrMaxF0 - maxF0) >= 0.0001) {
+        m_settings.autoCorrMaxF0 = maxF0;
+        save();
+        emit autoCorrMaxF0Changed();
+    }
+    LOG_DEBUG() << "Finish: setAutoCorrMaxF0";
+}
+
+QString SettingsApi::algorithm() const
+{
+    LOG_DEBUG() << "Start: algorithm";
+    QString result = QString::fromStdString(m_settings.algorithm);
+    LOG_DEBUG() << "Finish: algorithm - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAlgorithm(const QString& algorithm)
+{
+    LOG_DEBUG() << "Start: setAlgorithm - algorithm=" << algorithm;
+    if (m_settings.algorithm != algorithm.toStdString()) {
+        m_settings.algorithm = algorithm.toStdString();
+        save();
+        emit algorithmChanged();
+    }
+    LOG_DEBUG() << "Finish: setAlgorithm";
+}
+
+double SettingsApi::frameShift() const
+{
+    LOG_DEBUG() << "Start: frameShift";
+    double result = m_settings.frameShift;
+    LOG_DEBUG() << "Finish: frameShift - result=" << result;
+    return result;
+}
+
+void SettingsApi::setFrameShift(double frameShift)
+{
+    LOG_DEBUG() << "Start: setFrameShift - frameShift=" << frameShift;
+    if (qAbs(m_settings.frameShift - frameShift) >= 0.0001) {
+        m_settings.frameShift = frameShift;
+        save();
+        emit frameShiftChanged();
+    }
+    LOG_DEBUG() << "Finish: setFrameShift";
+}
+
+double SettingsApi::sampleRate() const
+{
+    LOG_DEBUG() << "Start: sampleRate";
+    double result = m_settings.sampleRate;
+    LOG_DEBUG() << "Finish: sampleRate - result=" << result;
+    return result;
+}
+
+void SettingsApi::setSampleRate(double sampleRate)
+{
+    LOG_DEBUG() << "Start: setSampleRate - sampleRate=" << sampleRate;
+    if (qAbs(m_settings.sampleRate - sampleRate) >= 0.0001) {
+        m_settings.sampleRate = sampleRate;
+        save();
+        emit sampleRateChanged();
+    }
+    LOG_DEBUG() << "Finish: setSampleRate";
+}
+
+double SettingsApi::minF0() const
+{
+    LOG_DEBUG() << "Start: minF0";
+    double result = m_settings.minF0;
+    LOG_DEBUG() << "Finish: minF0 - result=" << result;
+    return result;
+}
+
+void SettingsApi::setMinF0(double minF0)
+{
+    LOG_DEBUG() << "Start: setMinF0 - minF0=" << minF0;
+    if (qAbs(m_settings.minF0 - minF0) >= 0.0001) {
+        m_settings.minF0 = minF0;
+        save();
+        emit minF0Changed();
+    }
+    LOG_DEBUG() << "Finish: setMinF0";
+}
+
+double SettingsApi::maxF0() const
+{
+    LOG_DEBUG() << "Start: maxF0";
+    double result = m_settings.maxF0;
+    LOG_DEBUG() << "Finish: maxF0 - result=" << result;
+    return result;
+}
+
+void SettingsApi::setMaxF0(double maxF0)
+{
+    LOG_DEBUG() << "Start: setMaxF0 - maxF0=" << maxF0;
+    if (qAbs(m_settings.maxF0 - maxF0) >= 0.0001) {
+        m_settings.maxF0 = maxF0;
+        save();
+        emit maxF0Changed();
+    }
+    LOG_DEBUG() << "Finish: setMaxF0";
+}
+
+double SettingsApi::voicingThreshold() const
+{
+    LOG_DEBUG() << "Start: voicingThreshold";
+    double result = m_settings.voicingThreshold;
+    LOG_DEBUG() << "Finish: voicingThreshold - result=" << result;
+    return result;
+}
+
+void SettingsApi::setVoicingThreshold(double voicingThreshold)
+{
+    LOG_DEBUG() << "Start: setVoicingThreshold - voicingThreshold="
+                << voicingThreshold;
+    if (qAbs(m_settings.voicingThreshold - voicingThreshold) >= 0.0001) {
+        m_settings.voicingThreshold = voicingThreshold;
+        save();
+        emit voicingThresholdChanged();
+    }
+    LOG_DEBUG() << "Finish: setVoicingThreshold";
+}
+
+QString SettingsApi::pitchNormalization() const
+{
+    LOG_DEBUG() << "Start: pitchNormalization";
+    QString result = QString::fromStdString(m_settings.pitchNormalization);
+    LOG_DEBUG() << "Finish: pitchNormalization - result=" << result;
+    return result;
+}
+
+void SettingsApi::setPitchNormalization(const QString& pitchNormalization)
+{
+    LOG_DEBUG() << "Start: setPitchNormalization - pitchNormalization="
+                << pitchNormalization;
+    if (m_settings.pitchNormalization != pitchNormalization.toStdString()) {
+        m_settings.pitchNormalization = pitchNormalization.toStdString();
+        save();
+        emit pitchNormalizationChanged();
+    }
+    LOG_DEBUG() << "Finish: setPitchNormalization";
+}
+
+void SettingsApi::load()
+{
+    LOG_DEBUG() << "Start: load";
+    m_settings = Settings::loadSettings();
+    updateTranslator();
+    // Apply persisted font size multiplier on startup
+    {
+        QFont appFont = QGuiApplication::font();
+        appFont.setPixelSize(qRound(14 * m_settings.fontSizeMultiplier));
+        QGuiApplication::setFont(appFont);
+    }
+    emit languageChanged();
+    emit languageTitleChanged();
+    emit themeChanged();
+    emit fontSizeMultiplierChanged();
+    emit primaryColorChanged();
+    emit showNavigationMenuChanged();
+    emit autoStopRecordingChanged();
+    emit autoCalibrateChanged();
+    emit autoStopSilenceDurationChanged();
+    emit vadMethodChanged();
+    emit vadThresholdChanged();
+    emit autoCorrThresholdChanged();
+    emit showVadAChanged();
+    emit showVadUChanged();
+    emit showVadVChanged();
+    emit showVadCorrChanged();
+    emit algorithmChanged();
+    emit frameShiftChanged();
+    emit sampleRateChanged();
+    emit minF0Changed();
+    emit maxF0Changed();
+    emit voicingThresholdChanged();
+    emit pitchNormalizationChanged();
+    emit pitchInterpolationTypeChanged();
+    emit pitchSmoothingChanged();
+    emit pitchSmoothingWindowSizeChanged();
+    emit pitchGaussianSmoothingSigmaChanged();
+
+    emit amplitudeWindowChanged();
+    emit amplitudeShiftChanged();
+    emit amplitudeSmoothingChanged();
+    emit amplitudeSmoothingWindowSizeChanged();
+    emit amplitudeGaussianSmoothingSigmaChanged();
+    emit showAmplitudeChanged();
+    emit showAmplitudeDerivativeChanged();
+    emit showLogPitchChanged();
+
+    emit pitchSplineSmoothingPenaltyChanged();
+    emit umpSmoothingChanged();
+    emit umpSmoothingWindowSizeChanged();
+    emit umpGaussianSmoothingSigmaChanged();
+    emit umpSplineSmoothingPenaltyChanged();
+    emit showUMPChanged();
+    emit specFftLengthChanged();
+    emit specF0RefinementChanged();
+    emit specUseLogScaleChanged();
+    emit specColorSchemeChanged();
+    emit cepstrNumOrderChanged();
+    emit showDtwAlignmentChanged();
+    emit dpUsePitchChanged();
+    emit dpPitchCoefChanged();
+    emit dpUsePitchDerivativeChanged();
+    emit dpPitchDerivativeCoefChanged();
+    emit dpUsePitchLogChanged();
+    emit dpPitchLogCoefChanged();
+    emit dpUsePitchLogAsMaskChanged();
+    emit pitchLogSmoothingWindowSizeChanged();
+    emit pitchLogSmoothingMovingAverageSizeChanged();
+    emit transformPitchLogToBinaryChanged();
+    emit transformPitchLogThresholdChanged();
+    emit dpUseAmplitudeChanged();
+    emit dpAmplitudeCoefChanged();
+    emit dpUseAmplitudeDerivativeChanged();
+    emit dpAmplitudeDerivativeCoefChanged();
+    emit dpUseSpectrumChanged();
+    emit dpSpectrumCoefChanged();
+    emit dpUseCepstrumChanged();
+    emit dpCepstrumCoefChanged();
+    emit playSignalBeforeRecordingChanged();
+    emit playSignalAfterRecordingChanged();
+    emit beepBeforeFreqChanged();
+    emit beepBeforeDurationChanged();
+    emit beepBeforeAmplitudeChanged();
+    emit beepAfterDoubleFreq1Changed();
+    emit beepAfterDoubleDur1Changed();
+    emit beepAfterDoubleFreq2Changed();
+    emit beepAfterDoubleDur2Changed();
+    emit beepAfterDoubleAmplitudeChanged();
+    emit settingsChanged();
+    LOG_DEBUG() << "Finish: load";
+}
+
+int SettingsApi::cepstrNumOrder() const
+{
+    LOG_DEBUG() << "Start: cepstrNumOrder";
+    int result = m_settings.cepstrNumOrder;
+    LOG_DEBUG() << "Finish: cepstrNumOrder - result=" << result;
+    return result;
+}
+
+void SettingsApi::setCepstrNumOrder(int cepstrNumOrder)
+{
+    LOG_DEBUG() << "Start: setCepstrNumOrder - cepstrNumOrder=" << cepstrNumOrder;
+    if (m_settings.cepstrNumOrder != cepstrNumOrder) {
+        m_settings.cepstrNumOrder = cepstrNumOrder;
+        save();
+        emit cepstrNumOrderChanged();
+    }
+    LOG_DEBUG() << "Finish: setCepstrNumOrder";
+}
+
+void SettingsApi::save()
+{
+    LOG_DEBUG() << "Start: save";
+    Settings::saveSettings(m_settings);
+    emit settingsChanged();
+    LOG_DEBUG() << "Finish: save";
+}
+
+void SettingsApi::clearUserStatistics()
+{
+    LOG_DEBUG() << "Start: clearUserStatistics";
+    
+    // Clear statistics using Statistics helper (clears both stats and history)
+    Statistics::clearAllStatistics();
+    
+    // Get the statistics file path
+    QString filePath = Settings::getAppDataDir() + "/statistics.json";
+    QFile file(filePath);
+    
+    if (file.exists()) {
+        if (file.remove()) {
+            LOG_INFO() << "Statistics file deleted successfully";
+        } else {
+            LOG_WARNING() << "Failed to delete statistics file";
+        }
+    }
+    
+    // Delete all user records from data/records folder
+    QString recordsPath = Settings::getAppDataDir() + "/data/records";
+    QDir recordsDir(recordsPath);
+    
+    if (recordsDir.exists()) {
+        // Delete all files in the records directory
+        QFileInfoList fileInfoList = recordsDir.entryInfoList(QDir::Files);
+        for (const QFileInfo& fileInfo : fileInfoList) {
+            QFile fileToDelete(fileInfo.absoluteFilePath());
+            if (fileToDelete.remove()) {
+                LOG_INFO() << "Deleted user record:" << fileInfo.absoluteFilePath();
+            } else {
+                LOG_WARNING() << "Failed to delete user record:" << fileInfo.absoluteFilePath();
+            }
+        }
+        
+        // Also delete subdirectories
+        QFileInfoList dirInfoList = recordsDir.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot);
+        for (const QFileInfo& dirInfo : dirInfoList) {
+            QDir subDir(dirInfo.absoluteFilePath());
+            subDir.removeRecursively();
+            LOG_INFO() << "Deleted records subdirectory:" << dirInfo.absoluteFilePath();
+        }
+    }
+    
+    LOG_DEBUG() << "Finish: clearUserStatistics";
+}
+
+SettingsApi::PitchInterpolationType
+SettingsApi::pitchInterpolationType() const
+{
+    LOG_DEBUG() << "Start: pitchInterpolationType";
+    PitchInterpolationType result = PitchInterpolationType::Linear;
+    std::string type = m_settings.pitchInterpolationType;
+    if (type == "None")
+        result = PitchInterpolationType::None;
+    else if (type == "Linear")
+        result = PitchInterpolationType::Linear;
+    else if (type == "Cubic")
+        result = PitchInterpolationType::Cubic;
+    else if (type == "Akima")
+        result = PitchInterpolationType::Akima;
+    else if (type == "Monotone")
+        result = PitchInterpolationType::Monotone;
+    LOG_DEBUG() << "Finish: pitchInterpolationType - result="
+                << static_cast<int>(result);
+    return result;
+}
+
+void SettingsApi::setPitchInterpolationType(
+    PitchInterpolationType pitchInterpolationType)
+{
+    LOG_DEBUG() << "Start: setPitchInterpolationType - pitchInterpolationType="
+                << static_cast<int>(pitchInterpolationType);
+    std::string type = "Linear";
+    switch (pitchInterpolationType) {
+    case PitchInterpolationType::None:
+        type = "None";
+        break;
+    case PitchInterpolationType::Linear:
+        type = "Linear";
+        break;
+    case PitchInterpolationType::Cubic:
+        type = "Cubic";
+        break;
+    case PitchInterpolationType::Akima:
+        type = "Akima";
+        break;
+    case PitchInterpolationType::Monotone:
+        type = "Monotone";
+        break;
+    }
+
+    if (m_settings.pitchInterpolationType != type) {
+        m_settings.pitchInterpolationType = type;
+        save();
+        emit pitchInterpolationTypeChanged();
+    }
+    LOG_DEBUG() << "Finish: setPitchInterpolationType";
+}
+
+SettingsApi::PitchSmoothingType SettingsApi::pitchSmoothing() const
+{
+    LOG_DEBUG() << "Start: pitchSmoothing";
+    PitchSmoothingType result = PitchSmoothingType::None;
+    std::string type = m_settings.pitchSmoothing;
+
+    if (type == "None")
+        result = PitchSmoothingType::None;
+    else if (type == "MovingAverage")
+        result = PitchSmoothingType::MovingAverage;
+    else if (type == "Median")
+        result = PitchSmoothingType::Median;
+    else if (type == "Gaussian")
+        result = PitchSmoothingType::Gaussian;
+
+    else if (type == "Spline")
+        result = PitchSmoothingType::Spline;
+
+    LOG_DEBUG() << "Finish: pitchSmoothing - result=" << static_cast<int>(result);
+    return result;
+}
+
+void SettingsApi::setPitchSmoothing(PitchSmoothingType pitchSmoothing)
+{
+    LOG_DEBUG() << "Start: setPitchSmoothing - pitchSmoothing="
+                << static_cast<int>(pitchSmoothing);
+    std::string type = "None";
+    switch (pitchSmoothing) {
+    case PitchSmoothingType::None:
+        type = "None";
+        break;
+    case PitchSmoothingType::MovingAverage:
+        type = "MovingAverage";
+        break;
+    case PitchSmoothingType::Median:
+        type = "Median";
+        break;
+    case PitchSmoothingType::Gaussian:
+        type = "Gaussian";
+        break;
+
+    case PitchSmoothingType::Spline:
+        type = "Spline";
+        break;
+    }
+
+    if (m_settings.pitchSmoothing != type) {
+        m_settings.pitchSmoothing = type;
+        save();
+        emit pitchSmoothingChanged();
+    }
+    LOG_DEBUG() << "Finish: setPitchSmoothing";
+}
+
+int SettingsApi::pitchSmoothingWindowSize() const
+{
+    LOG_DEBUG() << "Start: pitchSmoothingWindowSize";
+    int result = m_settings.pitchSmoothingWindowSize;
+    LOG_DEBUG() << "Finish: pitchSmoothingWindowSize - result=" << result;
+    return result;
+}
+
+void SettingsApi::setPitchSmoothingWindowSize(int pitchSmoothingWindowSize)
+{
+    LOG_DEBUG()
+        << "Start: setPitchSmoothingWindowSize - pitchSmoothingWindowSize="
+        << pitchSmoothingWindowSize;
+    if (m_settings.pitchSmoothingWindowSize != pitchSmoothingWindowSize) {
+        m_settings.pitchSmoothingWindowSize = pitchSmoothingWindowSize;
+        save();
+        emit pitchSmoothingWindowSizeChanged();
+    }
+    LOG_DEBUG() << "Finish: setPitchSmoothingWindowSize";
+}
+
+double SettingsApi::pitchGaussianSmoothingSigma() const
+{
+    LOG_DEBUG() << "Start: pitchGaussianSmoothingSigma";
+    double result = m_settings.pitchGaussianSmoothingSigma;
+    LOG_DEBUG() << "Finish: pitchGaussianSmoothingSigma - result=" << result;
+    return result;
+}
+
+int SettingsApi::amplitudeWindow() const
+{
+    LOG_DEBUG() << "Start: amplitudeWindow";
+    int result = m_settings.amplitudeWindow;
+    LOG_DEBUG() << "Finish: amplitudeWindow - result=" << result;
+    return result;
+}
+
+int SettingsApi::amplitudeShift() const
+{
+    LOG_DEBUG() << "Start: amplitudeShift";
+    int result = m_settings.amplitudeShift;
+    LOG_DEBUG() << "Finish: amplitudeShift - result=" << result;
+    return result;
+}
+
+SettingsApi::AmplitudeSmoothingType SettingsApi::amplitudeSmoothing() const
+{
+    LOG_DEBUG() << "Start: amplitudeSmoothing";
+    AmplitudeSmoothingType result = AmplitudeSmoothingType::None;
+    std::string type = m_settings.amplitudeSmoothing;
+
+    if (type == "None")
+        result = AmplitudeSmoothingType::None;
+    else if (type == "MovingAverage")
+        result = AmplitudeSmoothingType::MovingAverage;
+    else if (type == "Median")
+        result = AmplitudeSmoothingType::Median;
+    else if (type == "Gaussian")
+        result = AmplitudeSmoothingType::Gaussian;
+
+    LOG_DEBUG() << "Finish: amplitudeSmoothing - result="
+                << static_cast<int>(result);
+    return result;
+}
+
+void SettingsApi::setAmplitudeSmoothing(
+    AmplitudeSmoothingType amplitudeSmoothing)
+{
+    LOG_DEBUG() << "Start: setAmplitudeSmoothing - amplitudeSmoothing="
+                << static_cast<int>(amplitudeSmoothing);
+    std::string type = "None";
+    switch (amplitudeSmoothing) {
+    case AmplitudeSmoothingType::None:
+        type = "None";
+        break;
+    case AmplitudeSmoothingType::MovingAverage:
+        type = "MovingAverage";
+        break;
+    case AmplitudeSmoothingType::Median:
+        type = "Median";
+        break;
+    case AmplitudeSmoothingType::Gaussian:
+        type = "Gaussian";
+        break;
+    }
+
+    if (m_settings.amplitudeSmoothing != type) {
+        m_settings.amplitudeSmoothing = type;
+        save();
+        emit amplitudeSmoothingChanged();
+    }
+    LOG_DEBUG() << "Finish: setAmplitudeSmoothing";
+}
+
+int SettingsApi::amplitudeSmoothingWindowSize() const
+{
+    LOG_DEBUG() << "Start: amplitudeSmoothingWindowSize";
+    int result = m_settings.amplitudeSmoothingWindowSize;
+    LOG_DEBUG() << "Finish: amplitudeSmoothingWindowSize - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAmplitudeSmoothingWindowSize(
+    int amplitudeSmoothingWindowSize)
+{
+    LOG_DEBUG() << "Start: setAmplitudeSmoothingWindowSize - "
+                   "amplitudeSmoothingWindowSize="
+                << amplitudeSmoothingWindowSize;
+    if (m_settings.amplitudeSmoothingWindowSize != amplitudeSmoothingWindowSize) {
+        m_settings.amplitudeSmoothingWindowSize = amplitudeSmoothingWindowSize;
+        save();
+        emit amplitudeSmoothingWindowSizeChanged();
+    }
+    LOG_DEBUG() << "Finish: setAmplitudeSmoothingWindowSize";
+}
+
+double SettingsApi::amplitudeGaussianSmoothingSigma() const
+{
+    LOG_DEBUG() << "Start: amplitudeGaussianSmoothingSigma";
+    double result = m_settings.amplitudeGaussianSmoothingSigma;
+    LOG_DEBUG() << "Finish: amplitudeGaussianSmoothingSigma - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAmplitudeGaussianSmoothingSigma(
+    double amplitudeGaussianSmoothingSigma)
+{
+    LOG_DEBUG() << "Start: setAmplitudeGaussianSmoothingSigma - "
+                   "amplitudeGaussianSmoothingSigma="
+                << amplitudeGaussianSmoothingSigma;
+    if (qAbs(m_settings.amplitudeGaussianSmoothingSigma - amplitudeGaussianSmoothingSigma) > 0.0001) {
+        m_settings.amplitudeGaussianSmoothingSigma = amplitudeGaussianSmoothingSigma;
+        save();
+        emit amplitudeGaussianSmoothingSigmaChanged();
+    }
+    LOG_DEBUG() << "Finish: setAmplitudeGaussianSmoothingSigma";
+}
+
+bool SettingsApi::showAmplitude() const
+{
+    LOG_DEBUG() << "Start: showAmplitude";
+    bool result = m_settings.showAmplitude;
+    LOG_DEBUG() << "Finish: showAmplitude - result=" << result;
+    return result;
+}
+
+bool SettingsApi::showAmplitudeDerivative() const
+{
+    LOG_DEBUG() << "Start: showAmplitudeDerivative";
+    bool result = m_settings.showAmplitudeDerivative;
+    LOG_DEBUG() << "Finish: showAmplitudeDerivative - result=" << result;
+    return result;
+}
+
+bool SettingsApi::showF0() const
+{
+    LOG_DEBUG() << "Start: showF0";
+    bool result = m_settings.showF0;
+    LOG_DEBUG() << "Finish: showF0 - result=" << result;
+    return result;
+}
+
+bool SettingsApi::showLogPitch() const
+{
+    LOG_DEBUG() << "Start: showLogPitch";
+    bool result = m_settings.showLogPitch;
+    LOG_DEBUG() << "Finish: showLogPitch - result=" << result;
+    return result;
+}
+
+bool SettingsApi::showProcessedPitch() const
+{
+    LOG_DEBUG() << "Start: showProcessedPitch";
+    bool result = m_settings.showProcessedPitch;
+    LOG_DEBUG() << "Finish: showProcessedPitch - result=" << result;
+    return result;
+}
+
+bool SettingsApi::useOnlyN() const
+{
+    LOG_DEBUG() << "Start: useOnlyN";
+    bool result = m_settings.useOnlyN;
+    LOG_DEBUG() << "Finish: useOnlyN - result=" << result;
+    return result;
+}
+
+void SettingsApi::setAmplitudeWindow(int amplitudeWindow)
+{
+    LOG_DEBUG() << "Start: setAmplitudeWindow - amplitudeWindow="
+                << amplitudeWindow;
+    if (m_settings.amplitudeWindow != amplitudeWindow) {
+        m_settings.amplitudeWindow = amplitudeWindow;
+        save();
+        emit amplitudeWindowChanged();
+    }
+    LOG_DEBUG() << "Finish: setAmplitudeWindow";
+}
+
+void SettingsApi::setAmplitudeShift(int amplitudeShift)
+{
+    LOG_DEBUG() << "Start: setAmplitudeShift - amplitudeShift=" << amplitudeShift;
+    if (m_settings.amplitudeShift != amplitudeShift) {
+        m_settings.amplitudeShift = amplitudeShift;
+        save();
+        emit amplitudeShiftChanged();
+    }
+    LOG_DEBUG() << "Finish: setAmplitudeShift";
+}
+
+void SettingsApi::setShowAmplitude(bool showAmplitude)
+{
+    LOG_DEBUG() << "Start: setShowAmplitude - showAmplitude=" << showAmplitude;
+    if (m_settings.showAmplitude != showAmplitude) {
+        m_settings.showAmplitude = showAmplitude;
+        save();
+        emit showAmplitudeChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowAmplitude";
+}
+
+void SettingsApi::setShowAmplitudeDerivative(bool showAmplitudeDerivative)
+{
+    LOG_DEBUG() << "Start: setShowAmplitudeDerivative - showAmplitudeDerivative="
+                << showAmplitudeDerivative;
+    if (m_settings.showAmplitudeDerivative != showAmplitudeDerivative) {
+        m_settings.showAmplitudeDerivative = showAmplitudeDerivative;
+        save();
+        emit showAmplitudeDerivativeChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowAmplitudeDerivative";
+}
+
+void SettingsApi::setShowF0(bool showF0)
+{
+    LOG_DEBUG() << "Start: setShowF0 - showF0=" << showF0;
+    if (m_settings.showF0 != showF0) {
+        m_settings.showF0 = showF0;
+        save();
+        emit showF0Changed();
+    }
+    LOG_DEBUG() << "Finish: setShowF0";
+}
+
+void SettingsApi::setShowLogPitch(bool showLogPitch)
+{
+    LOG_DEBUG() << "Start: setShowLogPitch - showLogPitch=" << showLogPitch;
+    if (m_settings.showLogPitch != showLogPitch) {
+        m_settings.showLogPitch = showLogPitch;
+        save();
+        emit showLogPitchChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowLogPitch";
+}
+
+void SettingsApi::setShowProcessedPitch(bool showProcessedPitch)
+{
+    LOG_DEBUG() << "Start: setShowProcessedPitch - showProcessedPitch="
+                << showProcessedPitch;
+    if (m_settings.showProcessedPitch != showProcessedPitch) {
+        m_settings.showProcessedPitch = showProcessedPitch;
+        save();
+        emit showProcessedPitchChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowProcessedPitch";
+}
+
+void SettingsApi::setUseOnlyN(bool useOnlyN)
+{
+    LOG_DEBUG() << "Start: setUseOnlyN - useOnlyN=" << useOnlyN;
+    if (m_settings.useOnlyN != useOnlyN) {
+        m_settings.useOnlyN = useOnlyN;
+        save();
+        emit useOnlyNChanged();
+    }
+    LOG_DEBUG() << "Finish: setUseOnlyN";
+}
+
+void SettingsApi::setPitchGaussianSmoothingSigma(
+    double pitchGaussianSmoothingSigma)
+{
+    LOG_DEBUG()
+        << "Start: setPitchGaussianSmoothingSigma - pitchGaussianSmoothingSigma="
+        << pitchGaussianSmoothingSigma;
+    if (qAbs(m_settings.pitchGaussianSmoothingSigma - pitchGaussianSmoothingSigma) > 0.0001) {
+        m_settings.pitchGaussianSmoothingSigma = pitchGaussianSmoothingSigma;
+        save();
+        emit pitchGaussianSmoothingSigmaChanged();
+    }
+    LOG_DEBUG() << "Finish: setPitchGaussianSmoothingSigma";
+}
+
+double SettingsApi::pitchSplineSmoothingPenalty() const
+{
+    LOG_DEBUG() << "Start: pitchSplineSmoothingPenalty";
+    double result = m_settings.pitchSplineSmoothingPenalty;
+    LOG_DEBUG() << "Finish: pitchSplineSmoothingPenalty - result=" << result;
+    return result;
+}
+
+void SettingsApi::setPitchSplineSmoothingPenalty(
+    double pitchSplineSmoothingPenalty)
+{
+    LOG_DEBUG()
+        << "Start: setPitchSplineSmoothingPenalty - pitchSplineSmoothingPenalty="
+        << pitchSplineSmoothingPenalty;
+    if (m_settings.pitchSplineSmoothingPenalty != pitchSplineSmoothingPenalty) {
+        m_settings.pitchSplineSmoothingPenalty = pitchSplineSmoothingPenalty;
+        save();
+        emit pitchSplineSmoothingPenaltyChanged();
+    }
+    LOG_DEBUG() << "Finish: setPitchSplineSmoothingPenalty";
+}
+
+SettingsApi::UmpSmoothingType SettingsApi::umpSmoothing() const
+{
+    LOG_DEBUG() << "Start: umpSmoothing";
+    UmpSmoothingType result = UmpSmoothingType::None;
+    std::string type = m_settings.umpSmoothing;
+    if (type == "MovingAverage")
+        result = UmpSmoothingType::MovingAverage;
+    else if (type == "Median")
+        result = UmpSmoothingType::Median;
+    else if (type == "Gaussian")
+        result = UmpSmoothingType::Gaussian;
+    else if (type == "Spline")
+        result = UmpSmoothingType::Spline;
+    LOG_DEBUG() << "Finish: umpSmoothing - result=" << static_cast<int>(result);
+    return result;
+}
+
+void SettingsApi::setUmpSmoothing(UmpSmoothingType umpSmoothing)
+{
+    LOG_DEBUG() << "Start: setUmpSmoothing - umpSmoothing="
+                << static_cast<int>(umpSmoothing);
+    std::string type;
+    switch (umpSmoothing) {
+    case UmpSmoothingType::MovingAverage: type = "MovingAverage"; break;
+    case UmpSmoothingType::Median:        type = "Median";        break;
+    case UmpSmoothingType::Gaussian:      type = "Gaussian";      break;
+    case UmpSmoothingType::Spline:        type = "Spline";        break;
+    default:                              type = "None";          break;
+    }
+    if (m_settings.umpSmoothing != type) {
+        m_settings.umpSmoothing = type;
+        save();
+        emit umpSmoothingChanged();
+    }
+    LOG_DEBUG() << "Finish: setUmpSmoothing";
+}
+
+int SettingsApi::umpSmoothingWindowSize() const
+{
+    LOG_DEBUG() << "Start: umpSmoothingWindowSize";
+    int result = m_settings.umpSmoothingWindowSize;
+    LOG_DEBUG() << "Finish: umpSmoothingWindowSize - result=" << result;
+    return result;
+}
+
+void SettingsApi::setUmpSmoothingWindowSize(int umpSmoothingWindowSize)
+{
+    LOG_DEBUG() << "Start: setUmpSmoothingWindowSize - umpSmoothingWindowSize="
+                << umpSmoothingWindowSize;
+    if (m_settings.umpSmoothingWindowSize != umpSmoothingWindowSize) {
+        m_settings.umpSmoothingWindowSize = umpSmoothingWindowSize;
+        save();
+        emit umpSmoothingWindowSizeChanged();
+    }
+    LOG_DEBUG() << "Finish: setUmpSmoothingWindowSize";
+}
+
+double SettingsApi::umpGaussianSmoothingSigma() const
+{
+    LOG_DEBUG() << "Start: umpGaussianSmoothingSigma";
+    double result = m_settings.umpGaussianSmoothingSigma;
+    LOG_DEBUG() << "Finish: umpGaussianSmoothingSigma - result=" << result;
+    return result;
+}
+
+void SettingsApi::setUmpGaussianSmoothingSigma(double umpGaussianSmoothingSigma)
+{
+    LOG_DEBUG() << "Start: setUmpGaussianSmoothingSigma - umpGaussianSmoothingSigma="
+                << umpGaussianSmoothingSigma;
+    if (m_settings.umpGaussianSmoothingSigma != umpGaussianSmoothingSigma) {
+        m_settings.umpGaussianSmoothingSigma = umpGaussianSmoothingSigma;
+        save();
+        emit umpGaussianSmoothingSigmaChanged();
+    }
+    LOG_DEBUG() << "Finish: setUmpGaussianSmoothingSigma";
+}
+
+double SettingsApi::umpSplineSmoothingPenalty() const
+{
+    LOG_DEBUG() << "Start: umpSplineSmoothingPenalty";
+    double result = m_settings.umpSplineSmoothingPenalty;
+    LOG_DEBUG() << "Finish: umpSplineSmoothingPenalty - result=" << result;
+    return result;
+}
+
+void SettingsApi::setUmpSplineSmoothingPenalty(double umpSplineSmoothingPenalty)
+{
+    LOG_DEBUG() << "Start: setUmpSplineSmoothingPenalty - umpSplineSmoothingPenalty="
+                << umpSplineSmoothingPenalty;
+    if (m_settings.umpSplineSmoothingPenalty != umpSplineSmoothingPenalty) {
+        m_settings.umpSplineSmoothingPenalty = umpSplineSmoothingPenalty;
+        save();
+        emit umpSplineSmoothingPenaltyChanged();
+    }
+    LOG_DEBUG() << "Finish: setUmpSplineSmoothingPenalty";
+}
+
+bool SettingsApi::showUMP() const
+{
+    LOG_DEBUG() << "Start: showUMP";
+    bool result = m_settings.showUMP;
+    LOG_DEBUG() << "Finish: showUMP - result=" << result;
+    return result;
+}
+
+void SettingsApi::setShowUMP(bool showUMP)
+{
+    LOG_DEBUG() << "Start: setShowUMP - showUMP=" << showUMP;
+    if (m_settings.showUMP != showUMP) {
+        m_settings.showUMP = showUMP;
+        save();
+        emit showUMPChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowUMP";
+}
+
+int SettingsApi::specFftLength() const
+{
+    LOG_DEBUG() << "Start: specFftLength";
+    int result = m_settings.specFftLength;
+    LOG_DEBUG() << "Finish: specFftLength - result=" << result;
+    return result;
+}
+
+void SettingsApi::setSpecFftLength(int specFftLength)
+{
+    LOG_DEBUG() << "Start: setSpecFftLength - specFftLength=" << specFftLength;
+    if (m_settings.specFftLength != specFftLength) {
+        m_settings.specFftLength = specFftLength;
+        save();
+        emit specFftLengthChanged();
+    }
+    LOG_DEBUG() << "Finish: setSpecFftLength";
+}
+
+bool SettingsApi::specF0Refinement() const
+{
+    LOG_DEBUG() << "Start: specF0Refinement";
+    bool result = m_settings.specF0Refinement;
+    LOG_DEBUG() << "Finish: specF0Refinement - result=" << result;
+    return result;
+}
+
+void SettingsApi::setSpecF0Refinement(bool specF0Refinement)
+{
+    LOG_DEBUG() << "Start: setSpecF0Refinement - specF0Refinement="
+                << specF0Refinement;
+    if (m_settings.specF0Refinement != specF0Refinement) {
+        m_settings.specF0Refinement = specF0Refinement;
+        save();
+        emit specF0RefinementChanged();
+    }
+    LOG_DEBUG() << "Finish: setSpecF0Refinement";
+}
+
+bool SettingsApi::specUseLogScale() const
+{
+    LOG_DEBUG() << "Start: specUseLogScale";
+    bool result = m_settings.specUseLogScale;
+    LOG_DEBUG() << "Finish: specUseLogScale - result=" << result;
+    return result;
+}
+
+void SettingsApi::setSpecUseLogScale(bool specUseLogScale)
+{
+    LOG_DEBUG() << "Start: setSpecUseLogScale - specUseLogScale="
+                << specUseLogScale;
+    if (m_settings.specUseLogScale != specUseLogScale) {
+        m_settings.specUseLogScale = specUseLogScale;
+        save();
+        emit specUseLogScaleChanged();
+    }
+    LOG_DEBUG() << "Finish: setSpecUseLogScale";
+}
+
+bool SettingsApi::showSpectrum() const
+{
+    LOG_DEBUG() << "Start: showSpectrum";
+    bool result = m_settings.showSpectrum;
+    LOG_DEBUG() << "Finish: showSpectrum - result=" << result;
+    return result;
+}
+
+void SettingsApi::setShowSpectrum(bool showSpectrum)
+{
+    LOG_DEBUG() << "Start: setShowSpectrum - showSpectrum=" << showSpectrum;
+    if (m_settings.showSpectrum != showSpectrum) {
+        m_settings.showSpectrum = showSpectrum;
+        save();
+        emit showSpectrumChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowSpectrum";
+}
+
+bool SettingsApi::showCepstrum() const
+{
+    LOG_DEBUG() << "Start: showCepstrum";
+    bool result = m_settings.showCepstrum;
+    LOG_DEBUG() << "Finish: showCepstrum - result=" << result;
+    return result;
+}
+
+void SettingsApi::setShowCepstrum(bool showCepstrum)
+{
+    LOG_DEBUG() << "Start: setShowCepstrum - showCepstrum=" << showCepstrum;
+    if (m_settings.showCepstrum != showCepstrum) {
+        m_settings.showCepstrum = showCepstrum;
+        save();
+        emit showCepstrumChanged();
+    }
+    LOG_DEBUG() << "Finish: setShowCepstrum";
+}
+
+SettingsApi::SpecColorScheme SettingsApi::specColorScheme() const
+{
+    LOG_DEBUG() << "Start: specColorScheme";
+    SpecColorScheme result = SpecColorScheme::Viridis;
+    std::string scheme = m_settings.specColorScheme;
+
+    if (scheme == "Viridis")
+        result = SpecColorScheme::Viridis;
+    else if (scheme == "Plasma")
+        result = SpecColorScheme::Plasma;
+    else if (scheme == "Hot")
+        result = SpecColorScheme::Hot;
+    else if (scheme == "Cool")
+        result = SpecColorScheme::Cool;
+
+    LOG_DEBUG() << "Finish: specColorScheme - result="
+                << static_cast<int>(result);
+    return result;
+}
+
+void SettingsApi::setSpecColorScheme(SpecColorScheme specColorScheme)
+{
+    LOG_DEBUG() << "Start: setSpecColorScheme - specColorScheme="
+                << static_cast<int>(specColorScheme);
+    std::string scheme = "Viridis";
+    switch (specColorScheme) {
+    case SpecColorScheme::Viridis:
+        scheme = "Viridis";
+        break;
+    case SpecColorScheme::Plasma:
+        scheme = "Plasma";
+        break;
+    case SpecColorScheme::Hot:
+        scheme = "Hot";
+        break;
+    case SpecColorScheme::Cool:
+        scheme = "Cool";
+        break;
+    }
+
+    if (m_settings.specColorScheme != scheme) {
+        m_settings.specColorScheme = scheme;
+        save();
+        emit specColorSchemeChanged();
+    }
+    LOG_DEBUG() << "Finish: setSpecColorScheme";
+}
+
+bool SettingsApi::showDtwAlignment() const { return m_settings.showDtwAlignment; }
+void SettingsApi::setShowDtwAlignment(bool val)
+{
+    if (m_settings.showDtwAlignment != val) {
+        m_settings.showDtwAlignment = val;
+        save();
+        emit showDtwAlignmentChanged();
+    }
+}
+bool SettingsApi::dpUsePitch() const { return m_settings.dpUsePitch; }
+void SettingsApi::setDpUsePitch(bool val)
+{
+    if (m_settings.dpUsePitch != val) {
+        m_settings.dpUsePitch = val;
+        save();
+        emit dpUsePitchChanged();
+    }
+}
+double SettingsApi::dpPitchCoef() const { return m_settings.dpPitchCoef; }
+void SettingsApi::setDpPitchCoef(double val)
+{
+    if (qAbs(m_settings.dpPitchCoef - val) > 0.0001) {
+        m_settings.dpPitchCoef = val;
+        save();
+        emit dpPitchCoefChanged();
+    }
+}
+bool SettingsApi::dpUsePitchDerivative() const { return m_settings.dpUsePitchDerivative; }
+void SettingsApi::setDpUsePitchDerivative(bool val)
+{
+    if (m_settings.dpUsePitchDerivative != val) {
+        m_settings.dpUsePitchDerivative = val;
+        save();
+        emit dpUsePitchDerivativeChanged();
+    }
+}
+double SettingsApi::dpPitchDerivativeCoef() const { return m_settings.dpPitchDerivativeCoef; }
+void SettingsApi::setDpPitchDerivativeCoef(double val)
+{
+    if (qAbs(m_settings.dpPitchDerivativeCoef - val) > 0.0001) {
+        m_settings.dpPitchDerivativeCoef = val;
+        save();
+        emit dpPitchDerivativeCoefChanged();
+    }
+}
+bool SettingsApi::dpUsePitchLog() const { return m_settings.dpUsePitchLog; }
+void SettingsApi::setDpUsePitchLog(bool val)
+{
+    if (m_settings.dpUsePitchLog != val) {
+        m_settings.dpUsePitchLog = val;
+        save();
+        emit dpUsePitchLogChanged();
+    }
+}
+double SettingsApi::dpPitchLogCoef() const { return m_settings.dpPitchLogCoef; }
+void SettingsApi::setDpPitchLogCoef(double val)
+{
+    if (qAbs(m_settings.dpPitchLogCoef - val) > 0.0001) {
+        m_settings.dpPitchLogCoef = val;
+        save();
+        emit dpPitchLogCoefChanged();
+    }
+}
+bool SettingsApi::dpUsePitchLogAsMask() const { return m_settings.dpUsePitchLogAsMask; }
+void SettingsApi::setDpUsePitchLogAsMask(bool val)
+{
+    if (m_settings.dpUsePitchLogAsMask != val) {
+        m_settings.dpUsePitchLogAsMask = val;
+        save();
+        emit dpUsePitchLogAsMaskChanged();
+    }
+}
+int SettingsApi::pitchLogSmoothingWindowSize() const { return m_settings.pitchLogSmoothingWindowSize; }
+void SettingsApi::setPitchLogSmoothingWindowSize(int val)
+{
+    if (m_settings.pitchLogSmoothingWindowSize != val) {
+        m_settings.pitchLogSmoothingWindowSize = val;
+        save();
+        emit pitchLogSmoothingWindowSizeChanged();
+    }
+}
+int SettingsApi::pitchLogSmoothingMovingAverageSize() const { return m_settings.pitchLogSmoothingMovingAverageSize; }
+void SettingsApi::setPitchLogSmoothingMovingAverageSize(int val)
+{
+    if (m_settings.pitchLogSmoothingMovingAverageSize != val) {
+        m_settings.pitchLogSmoothingMovingAverageSize = val;
+        save();
+        emit pitchLogSmoothingMovingAverageSizeChanged();
+    }
+}
+bool SettingsApi::transformPitchLogToBinary() const { return m_settings.transformPitchLogToBinary; }
+void SettingsApi::setTransformPitchLogToBinary(bool val)
+{
+    if (m_settings.transformPitchLogToBinary != val) {
+        m_settings.transformPitchLogToBinary = val;
+        save();
+        emit transformPitchLogToBinaryChanged();
+    }
+}
+double SettingsApi::transformPitchLogThreshold() const { return m_settings.transformPitchLogThreshold; }
+void SettingsApi::setTransformPitchLogThreshold(double val)
+{
+    if (qAbs(m_settings.transformPitchLogThreshold - val) > 0.0001) {
+        m_settings.transformPitchLogThreshold = val;
+        save();
+        emit transformPitchLogThresholdChanged();
+    }
+}
+bool SettingsApi::dpUseAmplitude() const { return m_settings.dpUseAmplitude; }
+void SettingsApi::setDpUseAmplitude(bool val)
+{
+    if (m_settings.dpUseAmplitude != val) {
+        m_settings.dpUseAmplitude = val;
+        save();
+        emit dpUseAmplitudeChanged();
+    }
+}
+double SettingsApi::dpAmplitudeCoef() const { return m_settings.dpAmplitudeCoef; }
+void SettingsApi::setDpAmplitudeCoef(double val)
+{
+    if (qAbs(m_settings.dpAmplitudeCoef - val) > 0.0001) {
+        m_settings.dpAmplitudeCoef = val;
+        save();
+        emit dpAmplitudeCoefChanged();
+    }
+}
+bool SettingsApi::dpUseAmplitudeDerivative() const { return m_settings.dpUseAmplitudeDerivative; }
+void SettingsApi::setDpUseAmplitudeDerivative(bool val)
+{
+    if (m_settings.dpUseAmplitudeDerivative != val) {
+        m_settings.dpUseAmplitudeDerivative = val;
+        save();
+        emit dpUseAmplitudeDerivativeChanged();
+    }
+}
+double SettingsApi::dpAmplitudeDerivativeCoef() const { return m_settings.dpAmplitudeDerivativeCoef; }
+void SettingsApi::setDpAmplitudeDerivativeCoef(double val)
+{
+    if (qAbs(m_settings.dpAmplitudeDerivativeCoef - val) > 0.0001) {
+        m_settings.dpAmplitudeDerivativeCoef = val;
+        save();
+        emit dpAmplitudeDerivativeCoefChanged();
+    }
+}
+bool SettingsApi::dpUseSpectrum() const { return m_settings.dpUseSpectrum; }
+void SettingsApi::setDpUseSpectrum(bool val)
+{
+    if (m_settings.dpUseSpectrum != val) {
+        m_settings.dpUseSpectrum = val;
+        save();
+        emit dpUseSpectrumChanged();
+    }
+}
+double SettingsApi::dpSpectrumCoef() const { return m_settings.dpSpectrumCoef; }
+void SettingsApi::setDpSpectrumCoef(double val)
+{
+    if (qAbs(m_settings.dpSpectrumCoef - val) > 0.0001) {
+        m_settings.dpSpectrumCoef = val;
+        save();
+        emit dpSpectrumCoefChanged();
+    }
+}
+bool SettingsApi::dpUseCepstrum() const { return m_settings.dpUseCepstrum; }
+void SettingsApi::setDpUseCepstrum(bool val)
+{
+    if (m_settings.dpUseCepstrum != val) {
+        m_settings.dpUseCepstrum = val;
+        save();
+        emit dpUseCepstrumChanged();
+    }
+}
+double SettingsApi::dpCepstrumCoef() const { return m_settings.dpCepstrumCoef; }
+void SettingsApi::setDpCepstrumCoef(double val)
+{
+    if (qAbs(m_settings.dpCepstrumCoef - val) > 0.0001) {
+        m_settings.dpCepstrumCoef = val;
+        save();
+        emit dpCepstrumCoefChanged();
+    }
+}
+double SettingsApi::dpMatchCoef() const { return m_settings.dpMatchCoef; }
+void SettingsApi::setDpMatchCoef(double val)
+{
+    if (qAbs(m_settings.dpMatchCoef - val) > 0.0001) {
+        m_settings.dpMatchCoef = val;
+        save();
+        emit dpMatchCoefChanged();
+    }
+}
+double SettingsApi::dpInsertionCoef() const { return m_settings.dpInsertionCoef; }
+void SettingsApi::setDpInsertionCoef(double val)
+{
+    if (qAbs(m_settings.dpInsertionCoef - val) > 0.0001) {
+        m_settings.dpInsertionCoef = val;
+        save();
+        emit dpInsertionCoefChanged();
+    }
+}
+double SettingsApi::dpDeletionCoef() const { return m_settings.dpDeletionCoef; }
+void SettingsApi::setDpDeletionCoef(double val)
+{
+    if (qAbs(m_settings.dpDeletionCoef - val) > 0.0001) {
+        m_settings.dpDeletionCoef = val;
+        save();
+        emit dpDeletionCoefChanged();
+    }
+}
+bool SettingsApi::dpUseFixedStartEndDP() const { return m_settings.dpUseFixedStartEndDP; }
+void SettingsApi::setDpUseFixedStartEndDP(bool val)
+{
+    if (m_settings.dpUseFixedStartEndDP != val) {
+        m_settings.dpUseFixedStartEndDP = val;
+        save();
+        emit dpUseFixedStartEndDPChanged();
+    }
+}
+double SettingsApi::dtwDistanceLimit() const { return m_settings.dtwDistanceLimit; }
+void SettingsApi::setDtwDistanceLimit(double val)
+{
+    if (qAbs(m_settings.dtwDistanceLimit - val) > 0.0001) {
+        m_settings.dtwDistanceLimit = val;
+        save();
+        emit dtwDistanceLimitChanged();
+    }
+}
+
+// ── Play signal ────────────────────────────────────────────────────────────
+bool SettingsApi::playSignalBeforeRecording() const { return m_settings.playSignalBeforeRecording; }
+void SettingsApi::setPlaySignalBeforeRecording(bool v)
+{
+    if (m_settings.playSignalBeforeRecording != v) {
+        m_settings.playSignalBeforeRecording = v;
+        save();
+        emit playSignalBeforeRecordingChanged();
+    }
+}
+bool SettingsApi::playSignalAfterRecording() const { return m_settings.playSignalAfterRecording; }
+void SettingsApi::setPlaySignalAfterRecording(bool v)
+{
+    if (m_settings.playSignalAfterRecording != v) {
+        m_settings.playSignalAfterRecording = v;
+        save();
+        emit playSignalAfterRecordingChanged();
+    }
+}
+
+// ── Beep signal parameters ─────────────────────────────────────────────────
+double SettingsApi::beepBeforeFreq() const { return m_settings.beepBeforeFreq; }
+void SettingsApi::setBeepBeforeFreq(double v)
+{
+    if (qAbs(m_settings.beepBeforeFreq - v) > 0.01) {
+        m_settings.beepBeforeFreq = v;
+        save();
+        emit beepBeforeFreqChanged();
+    }
+}
+int SettingsApi::beepBeforeDuration() const { return m_settings.beepBeforeDuration; }
+void SettingsApi::setBeepBeforeDuration(int v)
+{
+    if (m_settings.beepBeforeDuration != v) {
+        m_settings.beepBeforeDuration = v;
+        save();
+        emit beepBeforeDurationChanged();
+    }
+}
+double SettingsApi::beepBeforeAmplitude() const { return m_settings.beepBeforeAmplitude; }
+void SettingsApi::setBeepBeforeAmplitude(double v)
+{
+    if (qAbs(m_settings.beepBeforeAmplitude - v) > 0.001) {
+        m_settings.beepBeforeAmplitude = v;
+        save();
+        emit beepBeforeAmplitudeChanged();
+    }
+}
+double SettingsApi::beepAfterDoubleFreq1() const { return m_settings.beepAfterDoubleFreq1; }
+void SettingsApi::setBeepAfterDoubleFreq1(double v)
+{
+    if (qAbs(m_settings.beepAfterDoubleFreq1 - v) > 0.01) {
+        m_settings.beepAfterDoubleFreq1 = v;
+        save();
+        emit beepAfterDoubleFreq1Changed();
+    }
+}
+int SettingsApi::beepAfterDoubleDur1() const { return m_settings.beepAfterDoubleDur1; }
+void SettingsApi::setBeepAfterDoubleDur1(int v)
+{
+    if (m_settings.beepAfterDoubleDur1 != v) {
+        m_settings.beepAfterDoubleDur1 = v;
+        save();
+        emit beepAfterDoubleDur1Changed();
+    }
+}
+double SettingsApi::beepAfterDoubleFreq2() const { return m_settings.beepAfterDoubleFreq2; }
+void SettingsApi::setBeepAfterDoubleFreq2(double v)
+{
+    if (qAbs(m_settings.beepAfterDoubleFreq2 - v) > 0.01) {
+        m_settings.beepAfterDoubleFreq2 = v;
+        save();
+        emit beepAfterDoubleFreq2Changed();
+    }
+}
+int SettingsApi::beepAfterDoubleDur2() const { return m_settings.beepAfterDoubleDur2; }
+void SettingsApi::setBeepAfterDoubleDur2(int v)
+{
+    if (m_settings.beepAfterDoubleDur2 != v) {
+        m_settings.beepAfterDoubleDur2 = v;
+        save();
+        emit beepAfterDoubleDur2Changed();
+    }
+}
+double SettingsApi::beepAfterDoubleAmplitude() const { return m_settings.beepAfterDoubleAmplitude; }
+void SettingsApi::setBeepAfterDoubleAmplitude(double v)
+{
+    if (qAbs(m_settings.beepAfterDoubleAmplitude - v) > 0.001) {
+        m_settings.beepAfterDoubleAmplitude = v;
+        save();
+        emit beepAfterDoubleAmplitudeChanged();
+    }
+}
+
+// ── Guided mode ────────────────────────────────────────────────────────────
+bool SettingsApi::guidedModeEnabled() const { return m_settings.guidedModeEnabled; }
+void SettingsApi::setGuidedModeEnabled(bool v)
+{
+    if (m_settings.guidedModeEnabled != v) {
+        m_settings.guidedModeEnabled = v;
+        save();
+        emit guidedModeEnabledChanged();
+    }
+}
+int SettingsApi::guidedListenTimeoutMs() const { return m_settings.guidedListenTimeoutMs; }
+void SettingsApi::setGuidedListenTimeoutMs(int v)
+{
+    if (m_settings.guidedListenTimeoutMs != v) {
+        m_settings.guidedListenTimeoutMs = v;
+        save();
+        emit guidedListenTimeoutMsChanged();
+    }
+}
+int SettingsApi::guidedPrePlayListenDelayMs() const { return m_settings.guidedPrePlayListenDelayMs; }
+void SettingsApi::setGuidedPrePlayListenDelayMs(int v)
+{
+    if (m_settings.guidedPrePlayListenDelayMs != v) {
+        m_settings.guidedPrePlayListenDelayMs = v;
+        save();
+        emit guidedPrePlayListenDelayMsChanged();
+    }
+}
+
+void SettingsApi::updateTranslator()
+{
+    LOG_DEBUG() << "Start: updateTranslator";
+    QCoreApplication::removeTranslator(&m_translator);
+    QString lang = QString::fromStdString(m_settings.language);
+    if (m_translator.load("inton-trainer-2_" + lang,
+            QCoreApplication::applicationDirPath())) {
+        QCoreApplication::installTranslator(&m_translator);
+        QQmlEngine* engine = qmlEngine(this);
+        if (engine) {
+            engine->retranslate();
+        }
+    } else {
+        LOG_WARNING() << "Failed to load translation for" << lang;
+    }
+    LOG_DEBUG() << "Finish: updateTranslator";
+}

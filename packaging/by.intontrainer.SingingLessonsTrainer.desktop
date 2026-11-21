@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Singing Lessons Trainer
+Comment=Practice and analyze speech intonation
+Exec=appsinging-lessons-trainer
+Icon=by.intontrainer.SingingLessonsTrainer
+Terminal=false
+Categories=Education;AudioVideo;Audio;
+StartupWMClass=appsinging-lessons-trainer
