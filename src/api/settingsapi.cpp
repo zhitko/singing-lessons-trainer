@@ -58,6 +58,29 @@ void SettingsApi::setLanguageTitle(const QString& languageTitle)
     LOG_DEBUG() << "Finish: setLanguageTitle";
 }
 
+double SettingsApi::tonalErrorPower() const
+{
+    LOG_DEBUG() << "Start: tonalErrorPower";
+    double result = m_settings.tonalErrorPower;
+    LOG_DEBUG() << "Finish: tonalErrorPower - result=" << result;
+    return result;
+}
+
+void SettingsApi::setTonalErrorPower(double tonalErrorPower)
+{
+    LOG_DEBUG() << "Start: setTonalErrorPower - tonalErrorPower=" << tonalErrorPower;
+    if (!(tonalErrorPower > 0.0) || !std::isfinite(tonalErrorPower)) {
+        LOG_DEBUG() << "Finish: setTonalErrorPower - rejected non-positive value";
+        return;
+    }
+    if (qAbs(m_settings.tonalErrorPower - tonalErrorPower) >= 0.0001) {
+        m_settings.tonalErrorPower = tonalErrorPower;
+        save();
+        emit tonalErrorPowerChanged();
+    }
+    LOG_DEBUG() << "Finish: setTonalErrorPower";
+}
+
 QString SettingsApi::theme() const
 {
     LOG_DEBUG() << "Start: theme";

@@ -19,6 +19,7 @@ class SettingsApi : public QObject {
         QString language READ language WRITE setLanguage NOTIFY languageChanged)
     Q_PROPERTY(
         QString languageTitle READ languageTitle WRITE setLanguageTitle NOTIFY languageTitleChanged)
+    Q_PROPERTY(double tonalErrorPower READ tonalErrorPower WRITE setTonalErrorPower NOTIFY tonalErrorPowerChanged)
     Q_PROPERTY(QString theme READ theme WRITE setTheme NOTIFY themeChanged)
     Q_PROPERTY(double fontSizeMultiplier READ fontSizeMultiplier WRITE setFontSizeMultiplier NOTIFY fontSizeMultiplierChanged)
     Q_PROPERTY(QString primaryColor READ primaryColor WRITE setPrimaryColor NOTIFY primaryColorChanged)
@@ -203,6 +204,9 @@ public:
 
     QString languageTitle() const;
     void setLanguageTitle(const QString& languageTitle);
+
+    double tonalErrorPower() const;
+    void setTonalErrorPower(double tonalErrorPower);
 
     QString theme() const;
     void setTheme(const QString& theme);
@@ -470,6 +474,7 @@ signals:
     void useOnlyNChanged();
     void languageChanged();
     void languageTitleChanged();
+    void tonalErrorPowerChanged();
     void themeChanged();
     void fontSizeMultiplierChanged();
     void primaryColorChanged();

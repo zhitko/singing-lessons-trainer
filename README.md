@@ -26,7 +26,7 @@ The application works on a **template-based training** model:
 2. You **sing** the same line.
 3. The app **aligns** your recording to the reference using constrained DTW across multiple configurable acoustic streams (pitch, pitch derivative, log pitch, amplitude, amplitude derivative, spectrum, cepstrum).
 4. It computes a **Unified Melodic Profile (UMP)** — a normalized pitch contour — for both recordings.
-5. You get **melodic similarity** (Pearson correlation, 0–100%) and a **mean tonal error**. The error is the power mean of the absolute per-sample difference on those same aligned curves, exponent `p` (default 3, `tonalErrorPower` in `settings.ini`). The screen shows that mean times 100, immediately after similarity. Boris Lobanov's exact formula picture was lost and this reading still needs his confirmation.
+5. You get **melodic similarity** (Pearson correlation, 0–100%) and a **mean tonal error**. The error is the power mean of the absolute per-sample difference on those same aligned curves, exponent `p` (default 3, **Tonal Error Power** in the Settings page **Error calculation** section, `tonalErrorPower` in `settings.ini`). The screen shows that mean times 100, immediately after similarity. Boris Lobanov's exact formula picture was lost and this reading still needs his confirmation.
 
 ---
 

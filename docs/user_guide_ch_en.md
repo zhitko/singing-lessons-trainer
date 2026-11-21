@@ -58,7 +58,7 @@ On each sample the app takes the absolute difference between the reference curve
 
 The default exponent is **p = 3** (the cube root of the mean of the cubes), so one large miss weighs more than many small ones. The percent on screen is `M_p × 100`. Because the curves are normalized, that percent is of the normalized pitch range, not a count of cents or hertz.
 
-Change `p` with `tonalErrorPower` in the `[%General]` section of `settings.ini`. There is no separate control for it on the Settings page. Boris Lobanov's exact formula was a picture in his notes, and that picture was lost. This power mean is the calculation in the app until he confirms it.
+Change `p` with **Tonal Error Power** in the **Error calculation** section of the Settings page. The same value is `tonalErrorPower` in the `[%General]` section of `settings.ini`. Boris Lobanov's exact formula was a picture in his notes, and that picture was lost. This power mean is the calculation in the app until he confirms it.
 
 The graph uses the same colors in the Light and Dark themes: red for the reference (`#d62728`), dark brown for your take (`#83270b`), and a green band on the nucleus. The plot panel is a light background in both themes, so the Dark theme chart stays readable and the curves do not change hue.
 

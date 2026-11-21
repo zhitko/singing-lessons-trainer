@@ -603,6 +603,16 @@
         <translation>Размер шрифта</translation>
     </message>
     <message>
+        <location filename="../ui/pages/SettingsPage.qml" line="248"/>
+        <source>Tonal Error Power</source>
+        <translation>Степень тональной ошибки</translation>
+    </message>
+    <message>
+        <location filename="../ui/pages/SettingsPage.qml" line="313"/>
+        <source>Error calculation</source>
+        <translation>Расчёт ошибки</translation>
+    </message>
+    <message>
         <location filename="../ui/pages/SettingsPage.qml" line="250"/>
         <location filename="../ui/pages/SettingsPage.qml" line="1781"/>
         <source>Delete user data</source>

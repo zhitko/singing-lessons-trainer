@@ -545,6 +545,16 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../ui/pages/SettingsPage.qml" line="248"/>
+        <source>Tonal Error Power</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../ui/pages/SettingsPage.qml" line="313"/>
+        <source>Error calculation</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>Open-source licences</source>
         <translation type="vanished">Open-source licences</translation>
     </message>

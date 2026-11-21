@@ -277,6 +277,68 @@ Page {
                     spacing: 10
 
                     Label {
+                        text: qsTr("Error calculation")
+                        font.bold: true
+                        font.pixelSize: AppScale.fs(20)
+                        color: Theme.primary(Material.theme)
+                        Layout.fillWidth: true
+                    }
+
+                    GridLayout {
+                        columns: 2
+                        columnSpacing: 20
+                        rowSpacing: 10
+                        Layout.fillWidth: true
+
+                        Label {
+                            text: qsTr("Tonal Error Power")
+                            color: Theme.onSurface(Material.theme)
+                        }
+                        TextField {
+                            id: tonalErrorPowerField
+                            text: settingsApi ? settingsApi.tonalErrorPower.toString() : "3"
+                            onEditingFinished: {
+                                if (!settingsApi)
+                                    return;
+                                let value = parseDoubleValue(text);
+                                if (!(value > 0)) {
+                                    text = settingsApi.tonalErrorPower.toString();
+                                    return;
+                                }
+                                settingsApi.tonalErrorPower = value;
+                                if (!activeFocus)
+                                    text = settingsApi.tonalErrorPower.toString();
+                            }
+                            Layout.fillWidth: true
+                            selectByMouse: true
+                            inputMethodHints: Qt.ImhFormattedNumbersOnly
+
+                            Connections {
+                                target: settingsApi
+                                function onTonalErrorPowerChanged() {
+                                    if (!tonalErrorPowerField.activeFocus)
+                                        tonalErrorPowerField.text = settingsApi.tonalErrorPower.toString();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Frame {
+                Layout.fillWidth: true
+                Layout.margins: AppScale.pagePadding
+
+                background: Rectangle {
+                    color: Theme.surfaceContainerLow(Material.theme)
+                    radius: 16
+                }
+
+                ColumnLayout {
+                    width: parent.width
+                    spacing: 10
+
+                    Label {
                         text: qsTr("Automated Recording (VAD)")
                         font.bold: true
                         font.pixelSize: AppScale.fs(20)

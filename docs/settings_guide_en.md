@@ -22,10 +22,6 @@ Interface language, such as English or Russian.
 
 The label shown next to the active language on the home screen. It is not the translation of the interface. The bundled value is `Singing Lessons`.
 
-### tonalErrorPower — mean tonal error exponent
-
-The `tonalErrorPower` key in the `[%General]` section of `settings.ini`. It is the exponent `p` of the power mean of the absolute per-sample difference between the reference curve and your curve. The default is `3` (cubic mean). A larger `p` gives a large miss more weight. The screen shows that mean times 100, immediately after similarity. Boris Lobanov's exact formula still needs his confirmation: the picture in his notes was lost. There is no field for `p` in the interface; change it in `settings.ini`.
-
 ### Theme
 
 Light, dark, or the system theme. Pitch-chart colors stay the light-theme colors in every theme, and the chart panel stays light.
@@ -41,6 +37,14 @@ Shows or hides the navigation bar. When it is off, the app uses a desktop-style 
 ### Delete user data
 
 An action, not a stored setting. It deletes your statistics and saved recordings on this device.
+
+---
+
+## Error calculation
+
+### Tonal Error Power
+
+The exponent `p` of the power mean of the absolute per-sample difference between the reference curve and your curve. The default is `3` (cubic mean). A larger `p` gives a large miss more weight. The screen shows that mean times 100, immediately after similarity. Values that are not greater than zero are ignored. The value is stored as `tonalErrorPower` in the `[%General]` section of `settings.ini`. Boris Lobanov's exact formula still needs his confirmation: the picture in his notes was lost.
 
 ---
 
