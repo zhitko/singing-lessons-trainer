@@ -397,13 +397,11 @@ Item {
     }
 
     function chartPalette(theme) {
-        let p = primary(theme);
-        // Standard high-contrast visualization colors (Tableau-inspired)
-        let baseColors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
-
-        // Blend each base color with the current primary color to "merge" them into the theme
-        // 30% primary color tint usually gives good harmony without losing the original color's identity
-        return baseColors.map(c => Qt.tint(c, Qt.alpha(p, 0.3)));
+        // Pitch and analysis charts use these colors in both Light and Dark.
+        // They are not tinted by the theme primary, so a curve keeps the same
+        // hue when the user switches theme. `theme` is unused on purpose.
+        void theme
+        return ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
     }
 
     function tertiary(theme) {

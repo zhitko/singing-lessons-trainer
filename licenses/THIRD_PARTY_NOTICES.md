@@ -1,6 +1,6 @@
 # Open-source notices
 
-Intonation Trainer 2 contains or links the open-source components listed
+Singing Lessons Trainer contains or links the open-source components listed
 below. The complete license texts are available from the **Open-source
 licences** page in the application and are included in the APK/AAB.
 
@@ -35,7 +35,7 @@ under GNU GPL version 2 or, at your option, any later version. The complete
 corresponding application source, ALGLIB source, CMake files, and Android build
 instructions are available at:
 
-https://github.com/zhitko/inton-trainer-2
+https://github.com/zhitko/singing-lessons-trainer
 
 Matching upstream archive:
 https://www.alglib.net/translator/re/alglib-4.06.0.cpp.gpl.zip

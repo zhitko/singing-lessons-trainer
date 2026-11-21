@@ -1,6 +1,6 @@
 # Screenshots for the User Guide
 
-This directory contains the following screenshots referenced in `docs/user_guide_ch_en.md` and `docs/user_guide_ch_ru.md`:
+This directory contains the following screenshots referenced in `docs/user_guide_ch_en.md` and `docs/user_guide_ch_ru.md`. The guides now describe Singing Lessons Trainer. The pictures themselves are still the inherited interface captures; new singing-lesson captures are not in this folder yet.
 
 | Screenshot file | Description |
 |---|---|

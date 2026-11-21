@@ -38,8 +38,8 @@
     </message>
     <message>
         <location filename="../ui/pages/HomePage.qml" line="100"/>
-        <source>Master Your Intonation</source>
-        <translation>Master Your Intonation</translation>
+        <source>Sing after the reference</source>
+        <translation>Sing after the reference</translation>
     </message>
     <message>
         <location filename="../ui/pages/HomePage.qml" line="150"/>
@@ -85,8 +85,8 @@
     </message>
     <message>
         <location filename="../ui/pages/LicensesPage.qml" line="52"/>
-        <source>Intonation Trainer 2 uses open-source software. Select an item to read its complete licence and notices.</source>
-        <translation>Intonation Trainer 2 uses open-source software. Select an item to read its complete licence and notices.</translation>
+        <source>Singing Lessons Trainer uses open-source software. Select an item to read its complete licence and notices.</source>
+        <translation>Singing Lessons Trainer uses open-source software. Select an item to read its complete licence and notices.</translation>
     </message>
     <message>
         <location filename="../ui/pages/LicensesPage.qml" line="59"/>
@@ -105,8 +105,8 @@
     </message>
     <message>
         <location filename="../ui/pages/LicensesPage.qml" line="75"/>
-        <source>Intonation Trainer 2 source</source>
-        <translation>Intonation Trainer 2 source</translation>
+        <source>Singing Lessons Trainer source</source>
+        <translation>Singing Lessons Trainer source</translation>
     </message>
     <message>
         <location filename="../ui/pages/LicensesPage.qml" line="76"/>
@@ -1176,7 +1176,11 @@ Check analysis settings (e.g. increase FFT length).</translation>
     <message>
         <location filename="../ui/pages/TrainingPage.qml" line="853"/>
         <source>Similarity</source>
-        <translation type="unfinished"></translation>
+        <translation>Similarity</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Error</translation>
     </message>
     <message>
         <location filename="../ui/pages/TrainingPage.qml" line="1020"/>

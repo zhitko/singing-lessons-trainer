@@ -1,5 +1,6 @@
 #include "umpservice.h"
 #include "helpers/logger.h"
+#include "helpers/tonalerror.h"
 #include "helpers/vectorutils.h"
 #include <algorithm>
 #include <cmath>
@@ -240,9 +241,10 @@ UMPResult UMPService::getUMP(const std::string& interpolationType,
 
 UMPComparison UMPService::compareUMP(const std::vector<double>& referenceUmp,
     const std::vector<double>& userUmp,
-    double fullMin, double fullMax)
+    double fullMin, double fullMax,
+    double tonalErrorPower)
 {
-    UMPComparison result = { 0.0, 0.0, 0.0, 0.0 };
+    UMPComparison result = { 0.0, 0.0, 0.0, 0.0, 0.0 };
 
     // Validate inputs
     if (referenceUmp.empty() || userUmp.empty() || referenceUmp.size() != userUmp.size() || fullMin >= fullMax) {
@@ -281,10 +283,16 @@ UMPComparison UMPService::compareUMP(const std::vector<double>& referenceUmp,
     // 1 (perfect match) -> 100
     result.shapeSimilarity = std::max(0.0, correlation) * 100.0;
 
+    // Same samples as the correlation above (already aligned, and already
+    // restricted to nucleus frames when the caller asked for that).
+    result.meanTonalError = meanAbsolutePower(referenceUmp, userUmp, tonalErrorPower);
+
     LOG_DEBUG() << "compareUMP completed: refRange=" << result.referenceRange
                 << "%, userRange=" << result.userRange
                 << "%, rangeSim=" << result.rangeSimilarity
-                << "%, shapeSim=" << result.shapeSimilarity << "%";
+                << "%, shapeSim=" << result.shapeSimilarity
+                << "%, meanTonalError=" << result.meanTonalError
+                << " (p=" << tonalErrorPower << ")";
 
     return result;
 }

@@ -42,8 +42,8 @@
     </message>
     <message>
         <location filename="../ui/pages/HomePage.qml" line="100"/>
-        <source>Master Your Intonation</source>
-        <translation>Тренируй свою интонацию</translation>
+        <source>Sing after the reference</source>
+        <translation>Пойте вслед за эталоном</translation>
     </message>
     <message>
         <location filename="../ui/pages/HomePage.qml" line="150"/>
@@ -89,8 +89,8 @@
     </message>
     <message>
         <location filename="../ui/pages/LicensesPage.qml" line="52"/>
-        <source>Intonation Trainer 2 uses open-source software. Select an item to read its complete licence and notices.</source>
-        <translation>Intonation Trainer 2 использует программное обеспечение с открытым исходным кодом. Выберите пункт, чтобы прочитать полный текст лицензии и уведомления.</translation>
+        <source>Singing Lessons Trainer uses open-source software. Select an item to read its complete licence and notices.</source>
+        <translation>Singing Lessons Trainer использует программное обеспечение с открытым исходным кодом. Выберите пункт, чтобы прочитать полный текст лицензии и уведомления.</translation>
     </message>
     <message>
         <location filename="../ui/pages/LicensesPage.qml" line="59"/>
@@ -109,8 +109,8 @@
     </message>
     <message>
         <location filename="../ui/pages/LicensesPage.qml" line="75"/>
-        <source>Intonation Trainer 2 source</source>
-        <translation>Исходный код Intonation Trainer 2</translation>
+        <source>Singing Lessons Trainer source</source>
+        <translation>Исходный код Singing Lessons Trainer</translation>
     </message>
     <message>
         <location filename="../ui/pages/LicensesPage.qml" line="76"/>
@@ -1327,6 +1327,10 @@ Yours</source>
         <location filename="../ui/pages/TrainingPage.qml" line="853"/>
         <source>Similarity</source>
         <translation>Сходство</translation>
+    </message>
+    <message>
+        <source>Error</source>
+        <translation>Ошибка</translation>
     </message>
     <message>
         <source>Play &amp; Listen</source>

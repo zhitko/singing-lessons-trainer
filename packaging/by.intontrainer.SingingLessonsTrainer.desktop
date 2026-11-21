@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Singing Lessons Trainer
-Comment=Practice and analyze speech intonation
+Comment=Sing after a reference and compare your pitch
 Exec=appsinging-lessons-trainer
 Icon=by.intontrainer.SingingLessonsTrainer
 Terminal=false

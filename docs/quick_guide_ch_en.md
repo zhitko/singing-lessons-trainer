@@ -1,71 +1,34 @@
-# Quick User Guide
+# Singing Lessons Trainer
 
-## What is the app for?
+Vladimir Zhitko and Boris Lobanov.
 
-IntonTrainer 2-Ch is a program for practicing Chinese tones using reference audio recordings. The user listens to a sample, records their own phrase, and compares their intonation with the reference using a graph and similarity percentage. The desktop build is on [intontrainer.by](https://intontrainer.by/#download-inton2-ch). The Android edition is on [Google Play](https://play.google.com/store/apps/details?id=by.intoncore.intontrainer2.zh).
+The vocal exercises are presented as audio files recorded by experienced vocal teachers. The proposed set of exercises relies to a large extent on the speech-level singing method developed by the well-known vocal teacher Seth Riggs. Training is based on lip and tongue trills, balancing vowel and consonant sounds, and sliding "sirens".
 
-## Brief: How to use (typical scenario)
+Singing Lessons Trainer plays a reference sung by a vocal teacher. You sing the same line. The app draws both pitch curves and scores melodic similarity and a mean tonal error. Lessons include vocal exercises and short song fragments. The app is not published on Google Play. Nothing you record is uploaded.
 
-1. Open the app and go to the main screen.
-2. Go to "Sample Categories" and select the desired folder.
-3. Open "Sample Files" and select the desired wav file.
-4. Tap to listen to the reference phrase.
-5. Say the same phrase into the microphone (in the selected training mode).
-6. View the similarity percentage and graphs; repeat the attempt several times if necessary.
+## Lessons
 
-The main screen is used to start training and review overall progress. The training screen is used to listen to the sample, record, and analyze one attempt. The recordings screen is used to view and compare saved attempts.
+The bundled lessons keep their original folders and file names, including Cyrillic and Belarusian names:
 
-## Which screens do you really need?
+- Singing exercises
+- Some songs examples
+- Examples of singing
 
-- Main screen - Start training and overall metrics (average accuracy, files mastered, progress). Use it to see your overall results and start new sessions.
-- Sample categories -> Sample files - select the desired phrase group and specific pattern for training.
-- Training screen - the main work area: listen to the sample, record yourself, see the similarity percentage and pitch graphs.
-- Recordings screen - store and view past attempts to compare your progress.
+Each lesson is a WAV file. Some WAV files have a sibling `.sfk` file. That is a Sound Forge peak file. The app does not read it. Training uses the WAV, including any cue labels stored inside the WAV.
 
-Advanced analysis and detailed graphs are only useful once you're practicing regularly and want to understand where exactly your pitch is slipping.
+## How to practice
 
-## Training modes - which to choose
+1. On the home screen, tap **Start Training**.
+2. Open a folder and choose a WAV lesson.
+3. Listen to the reference, then sing the same line. In the automatic mode the recording stops after you go quiet. Guided mode plays the reference, waits, then listens. Manual mode starts and stops when you tap Record.
+4. Read the two numbers at the top and compare the curves. Red is the reference. Dark brown is your take.
 
-You have three modes available, but for a quick guide, this is sufficient:
+## Scores
 
-- Automatic mode
+**Similarity** is how alike the two melodies are. It is the Pearson correlation of the aligned, normalized pitch curves, shown as a percent. A negative correlation is shown as 0. A small trend marker compares this take with your previous similarity.
 
-The app automatically starts recording when you speak and automatically stops when you're quiet. Convenient for quick, uninterrupted practice once you've mastered how the training works. 
+**Error** is the mean tonal error, shown as a percent immediately to the right of similarity. For each sample the app takes the absolute difference between the reference curve and your curve, on those same aligned curves (and only on the nucleus, when that option is on). Those differences are averaged as a power mean with exponent p. The default is p = 3: the cube root of the mean of the cubes, so a large miss weighs more than many small ones. The percent on screen is that mean times 100. Change p with `tonalErrorPower` in the `[%General]` section of `settings.ini`. Boris Lobanov's exact formula was a picture that was lost from his notes, so this calculation still needs his confirmation.
 
-- Guided Mode
+## What stays on the device
 
-First, the sample is played, followed by a short pause, then the app waits for your response and records it. This is the best choice for beginners and for practicing new phrases step by step.
-
-- Manual Mode
-
-You start and stop recording manually. This is mainly useful in noisy environments or if you want full manual control.
-
-If the user is unsure which mode to choose, the default recommended mode is Guided or Automatic, depending on how comfortable they are speaking immediately after the sample.
-
-## What the indicators mean
-
-- On the training screen, you see the percentage of similarity with the sample; the closer to 100%, the better your intonation matches.
-- The trend arrow shows whether the new attempt is better or worse than the previous one.
-- Results History-a quick feed of the latest percentages to see if your results are stabilizing.
-- On the main screen, the average accuracy and number of files mastered show your overall progress across all samples.
-
-For most users, the percentage of similarity is sufficient and they should strive to maintain a consistently high score for the same file.
-
-## Recommended Working Style
-
-- Practice in a quiet room and speak clearly into the microphone.
-- Use a high-quality microphone — a dedicated external mic or a good built-in laptop microphone. Poor microphone quality distorts pitch tracking and makes similarity scores less reliable.
-- Select a small set of phrases and repeat each one several times before moving on to the next.
-- Do not change advanced analysis settings (VAD, DTW, DSP) unless you have obvious recognition issues or are debugging.
-- When changing rooms or microphones, run automatic calibration to ensure the app correctly identifies speech.
-
-## Settings that can be adjusted
-
-For the average user, only the basic settings are useful:
-
-- Interface language (Russian/English).
-- Theme (light/dark), primary color, font size - purely visual parameters.
-- Training mode (automatic/guided/manual).
-- Automatic recording stop and automatic calibration - should be left on unless there is a specific reason to disable them.
-
-_It's best to leave the default settings for VAD, thresholds, DTW, pitch parameters, and other settings._
+The app needs the microphone. Recordings, scores, and settings stay on the device. You can delete records, or delete user data, from Settings. See the privacy notice in the app.

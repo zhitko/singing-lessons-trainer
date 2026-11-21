@@ -30,6 +30,10 @@ struct UMPComparison {
     double userRange; // 0-100: percentage of full range covered by user UMP
     double rangeSimilarity; // 0-100: how similar the ranges are
     double shapeSimilarity; // 0-100: Pearson correlation between the two profiles
+    // Power mean of |reference - user| on the same samples as shapeSimilarity.
+    // Not a percent: the training screen shows this value times 100.
+    // See helpers/tonalerror.h. The exact formula still needs Boris's confirmation.
+    double meanTonalError;
 };
 
 /**
@@ -91,17 +95,22 @@ public:
      *         - userRange: Percentage of full range covered by user UMP (0-100)
      *         - rangeSimilarity: How well the ranges match (0-100)
      *         - shapeSimilarity: Pearson correlation between profiles (0-100)
+     *         - meanTonalError: power mean of |reference - user| on those samples
+     *
+     * @param tonalErrorPower Exponent p of the mean tonal error. Defaults to 3
+     * (cubic mean). Non-positive values fall back to that default.
      *
      * @details This static method performs profile comparison using correlation
      * analysis and range normalization. Both UMP vectors must have the same
-     * length.
+     * length. The tonal error uses those same samples.
      *
      * @note Returns zero values for all fields if input vectors have mismatched
      * lengths or if either vector is empty.
      */
     static UMPComparison compareUMP(const std::vector<double>& referenceUmp,
         const std::vector<double>& userUmp,
-        double fullMin, double fullMax);
+        double fullMin, double fullMax,
+        double tonalErrorPower = 3.0);
 };
 
 #endif // UMPSERVICE_H
