@@ -37,6 +37,11 @@ Column {
     readonly property color chartInk: "#74777F"
     readonly property real plotRadius: 12
     property bool showYAxis: true
+    // Shade the area between the first two datasets (e.g. reference vs. user)
+    // so deviations between the curves stand out.
+    property bool fillBetween: false
+    property color fillBetweenColor: Theme.error(Material.theme)
+    property real fillBetweenOpacity: 0.22
 
     onDarkThemeChanged: canvas.requestPaint()
 
@@ -362,6 +367,23 @@ Column {
             plotPath();
             ctx.clip();
 
+            // Area between the first two curves: trace dataset 0 forward and
+            // dataset 1 backward. Crossings form separate loops, all filled.
+            if (root.fillBetween && datasets.length >= 2
+                    && datasets[0].length >= 2 && datasets[1].length >= 2) {
+                var fa = datasets[0];
+                var fb = datasets[1];
+                ctx.beginPath();
+                ctx.moveTo(scaleX(fa[0].x), scaleY(fa[0].y, 0));
+                for (var fi = 1; fi < fa.length; fi++)
+                    ctx.lineTo(scaleX(fa[fi].x), scaleY(fa[fi].y, 0));
+                for (var fj = fb.length - 1; fj >= 0; fj--)
+                    ctx.lineTo(scaleX(fb[fj].x), scaleY(fb[fj].y, 1));
+                ctx.closePath();
+                ctx.fillStyle = Qt.alpha(root.fillBetweenColor, root.fillBetweenOpacity);
+                ctx.fill();
+            }
+
             for (var d = 0; d < datasets.length; d++) {
                 var data = datasets[d];
                 if (data.length < 2)
@@ -430,6 +452,9 @@ Column {
     onDatasetWidthScalesChanged: canvas.requestPaint()
     onDatasetOpacitiesChanged: canvas.requestPaint()
     onLineWidthChanged: canvas.requestPaint()
+    onFillBetweenChanged: canvas.requestPaint()
+    onFillBetweenColorChanged: canvas.requestPaint()
+    onFillBetweenOpacityChanged: canvas.requestPaint()
 
     onThresholdValueChanged: {
         canvas.requestPaint();

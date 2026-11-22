@@ -930,6 +930,11 @@ Page {
                 datasetWidthScales: [2.0, 1.0]
                 datasetOpacities: [0.55, 1.0]
                 lineWidth: root.isCompact ? 3 : 4
+                // Shade the gap between reference and user curves to show
+                // where the take deviates. Only drawn once both curves exist.
+                fillBetween: true
+                fillBetweenColor: "#D55E00"
+                fillBetweenOpacity: 0.2
                 showCueLabels: false
                 showYAxis: false
                 cueNLabels: root.referenceFileName.replace(/\([^)]*\)/g, "").replace(/^[^,]*?\s-\s*/, "").replace(/^\s*\d+\s*/, "").split(",").map(s => s.trim())
