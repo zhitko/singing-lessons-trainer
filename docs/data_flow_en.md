@@ -108,14 +108,13 @@ flowchart LR
     Sig["Waveform"] --> Track["F0 tracker"]
     Track --> Gaps["Interpolate unvoiced frames, no edge extrapolation"]
     Gaps --> Smooth["Smoother: median, moving average, Gaussian, or spline"]
-    Smooth --> Norm["Normalize: min-max, mean, or mean-deviation"]
-    Norm --> Scale["Scale to 0 to 1"]
-    Scale --> Out["F0 series for DTW and UMP"]
+    Smooth --> Norm["Normalize: max, min-max, or mean"]
+    Norm --> Out["F0 series for DTW and UMP"]
 ```
 
 - Unvoiced frames (F0 = 0) are filled by the chosen interpolator (default **linear**). Leading and trailing unvoiced runs are left empty so the contour is not extrapolated.
 - Default smoother: **median**, window 16.
-- Default normalization: **min–max**, then affine map to `0…1`.
+- Default normalization: **max**. Each sample is divided by the peak, so the highest pitch is 1 and lower pitches keep their ratio to that peak. **min_max** shifts the floor to 0 and maps the range to `0…1`. **mean** subtracts the mean, then maps the result to `0…1`.
 - Training uses the same pitch preprocessing for the reference and the take. The optional **nucleus mask** selects their shared N frames only at the scoring stage, after alignment and UMP generation.
 
 ### Log pitch and its derivative

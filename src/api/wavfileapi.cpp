@@ -656,8 +656,12 @@ QVariantList WavFileApi::getPitch(
     if (!pitch.empty()) {
         std::vector<double> normalizedPitch;
 
+        // "max" scales the peak to 1 and keeps each sample's ratio to that
+        // peak. The later min–max map would shift the floor to 0 and erase it.
+        bool scaleMinMax = normalizationMode != "max";
+
         if (normalizationMode == "max") {
-            normalizedPitch = pitch;
+            normalizedPitch = normalized ? VectorUtils::normalizeTo(1.0, pitch) : pitch;
         } else if (normalizationMode == "min_max") {
             normalizedPitch = VectorUtils::normalizeByMinMax(pitch);
         } else if (normalizationMode == "mean") {
@@ -665,13 +669,12 @@ QVariantList WavFileApi::getPitch(
         } else if (normalizationMode == "mean_deviation") {
             normalizedPitch = VectorUtils::normalizeByMeanDeviation(pitch);
         } else {
-            // Default to by max if unknown
             LOG_WARNING() << "Unknown normalization mode:" << normalizationMode
-                          << ", defaulting to max";
+                          << ", scaling the contour to 0..1";
             normalizedPitch = pitch;
         }
 
-        if (normalized) {
+        if (scaleMinMax && normalized) {
             normalizedPitch = VectorUtils::normalizeFromTo(0.0, 1.0, normalizedPitch);
         }
 

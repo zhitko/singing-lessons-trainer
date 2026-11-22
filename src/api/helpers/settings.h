@@ -79,7 +79,7 @@ struct AppSettings {
     // Voicing threshold for pitch extraction
     double voicingThreshold = 0;
     // Normalization mode options: "max", "min_max", "mean", "mean_deviation"
-    std::string pitchNormalization = "min_max";
+    std::string pitchNormalization = "max";
     // Interpolation type options: "None", "Linear", "Cubic", "Akima", "Monotone"
     std::string pitchInterpolationType = "Linear";
     // Smoothing type options: "None", "MovingAverage", "Median", "Gaussian",

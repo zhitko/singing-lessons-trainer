@@ -179,7 +179,7 @@ Settings::loadSettings()
     settings.minF0 = qsettings.value("minF0", 80.0).toDouble();
     settings.maxF0 = qsettings.value("maxF0", 500.0).toDouble();
     settings.voicingThreshold = qsettings.value("voicingThreshold", 0).toDouble();
-    settings.pitchNormalization = qsettings.value("pitchNormalization", QString("min_max")).toString().toStdString();
+    settings.pitchNormalization = qsettings.value("pitchNormalization", QString("max")).toString().toStdString();
     settings.pitchInterpolationType = qsettings.value("pitchInterpolationType", QString("Linear"))
                                           .toString()
                                           .toStdString();

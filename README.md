@@ -113,7 +113,7 @@ A comprehensive settings panel organized with an **Advanced** toggle (non-persis
 | **General (always visible)** | UI language (EN/RU), light/dark/system theme, accent color (Blue/Green/Purple/Orange/Red/Stainless Steel), navigation menu visibility, font size, delete user data |
 | **Automated Recording (always visible)** | Enable Guided Mode, Auto Stop Recording, Auto-calibrate before recording, Calibrate button |
 | **Advanced (hidden behind toggle)** | Language Title, Guided Mode subs (listen window timeout, post-playback delay), VAD Method, Calibration Duration, Silence Duration, Min Record Length %, Energy Threshold, Autocorrelation Threshold/K/MinF0/MaxF0, both Calibrate buttons, diagnostic curve toggles (A, U, V, Corr) |
-| **Pitch (advanced)** | F0 algorithm (RAPT), frame shift, sample rate, F0 min/max range, voicing threshold, normalization (min_max / mean), interpolation (Linear/Cubic/Akima/Monotone), smoothing (Moving Average/Median/Gaussian/Spline) with window/sigma/penalty controls |
+| **Pitch (advanced)** | F0 algorithm (RAPT), frame shift, sample rate, F0 min/max range, voicing threshold, normalization (max / min_max / mean), interpolation (Linear/Cubic/Akima/Monotone), smoothing (Moving Average/Median/Gaussian/Spline) with window/sigma/penalty controls |
 | **Pitch Log (advanced)** | Median smoothing window, moving average size, binary transform on/off with threshold |
 | **UMP (advanced)** | Smoothing type (None / MovingAverage / Median / Gaussian / Spline) with window size, sigma, and penalty controls; show/hide toggle |
 | **Amplitude (advanced)** | Window/shift sizes, smoothing (MovingAverage / Median / Gaussian) with window and sigma controls; show/hide amplitude and derivative |

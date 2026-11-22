@@ -1029,7 +1029,7 @@ Page {
                             color: Theme.onSurface(Material.theme)
                         }
                         ComboBox {
-                            model: ["min_max", "mean"]
+                            model: ["max", "min_max", "mean"]
                             currentIndex: settingsApi ? model.indexOf(settingsApi.pitchNormalization) : 0
                             onActivated: if (settingsApi)
                                 settingsApi.pitchNormalization = currentText
