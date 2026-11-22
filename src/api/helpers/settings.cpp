@@ -137,7 +137,7 @@ Settings::loadSettings()
     settings.language = qsettings.value("language", QString("ru")).toString().toStdString();
     settings.languageTitle = qsettings.value("languageTitle", QString("Русский")).toString().toStdString();
     settings.tonalErrorPower = qsettings.value("tonalErrorPower", 3.0).toDouble();
-    settings.theme = qsettings.value("theme", QString("light")).toString().toStdString();
+    settings.theme = qsettings.value("theme", QString("system")).toString().toStdString();
     settings.fontSizeMultiplier = qsettings.value("fontSizeMultiplier", 1.0).toDouble();
     settings.primaryColor = qsettings.value("primaryColor", QString("blue")).toString().toStdString();
     settings.showNavigationMenu = qsettings.value("showNavigationMenu", false).toBool();

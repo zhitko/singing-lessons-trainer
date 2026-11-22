@@ -36,20 +36,28 @@ ApplicationWindow {
 
     SettingsApi {
         id: settingsApi
-        onThemeChanged: {
-            window.theme = getTheme();
-        }
     }
 
     property alias settingsApi: settingsApi
 
     readonly property bool trainingPageActive: stackView.currentItem && stackView.currentItem.isTrainingPage === true
 
+    // Read so getTheme() updates when the desktop color scheme changes.
+    readonly property int systemColorScheme: Qt.styleHints.colorScheme
+
     function getTheme() {
-        return settingsApi.theme === "dark" ? Material.Dark : (settingsApi.theme === "light" ? Material.Light : Material.System);
+        if (settingsApi.theme === "dark")
+            return Material.Dark;
+        if (settingsApi.theme === "light")
+            return Material.Light;
+        // Pass the resolved mode, not Material.System. Qt's style converts
+        // System to Light or Dark when it is applied, but Theme.* only
+        // compared the raw enum with Material.Dark and therefore always
+        // returned the light palette.
+        return systemColorScheme === Qt.ColorScheme.Dark ? Material.Dark : Material.Light;
     }
 
-    property var theme: getTheme()
+    readonly property int theme: getTheme()
 
     Binding {
         target: Theme

@@ -124,6 +124,18 @@ Item {
         return primaryColorName;
     }
 
+    // Material.theme reads back as Light or Dark. Material.System does not:
+    // Qt resolves it inside the style, but a value passed through as the enum
+    // stays System. Treat that (and any other non-Light value) as the OS scheme
+    // so custom colors match the controls.
+    function isDark(theme) {
+        if (theme === Material.Dark)
+            return true;
+        if (theme === Material.Light)
+            return false;
+        return Qt.styleHints.colorScheme === Qt.ColorScheme.Dark;
+    }
+
     property var palettes: {
         "blue": {
             "light": {
@@ -357,7 +369,7 @@ Item {
 
     function getColor(propertyName, theme) {
         let colorName = getPrimaryColorName();
-        let mode = theme === Material.Dark ? "dark" : "light";
+        let mode = isDark(theme) ? "dark" : "light";
         let palette = palettes[colorName] || palettes["blue"];
         if (palette[mode] && palette[mode][propertyName]) {
             return palette[mode][propertyName];
@@ -430,135 +442,135 @@ Item {
         return getColor("onErrorContainer", theme);
     }
     function success(theme) {
-        return theme === Material.Dark ? darkTheme.success : lightTheme.success;
+        return isDark(theme) ? darkTheme.success : lightTheme.success;
     }
 
     function background(theme) {
-        return theme === Material.Dark ? darkTheme.background : lightTheme.background;
+        return isDark(theme) ? darkTheme.background : lightTheme.background;
     }
     function onBackground(theme) {
-        return theme === Material.Dark ? darkTheme.colorOnBackground : lightTheme.colorOnBackground;
+        return isDark(theme) ? darkTheme.colorOnBackground : lightTheme.colorOnBackground;
     }
 
     function surface(theme) {
-        return theme === Material.Dark ? darkTheme.surface : lightTheme.surface;
+        return isDark(theme) ? darkTheme.surface : lightTheme.surface;
     }
     function onSurface(theme) {
-        return theme === Material.Dark ? darkTheme.colorOnSurface : lightTheme.colorOnSurface;
+        return isDark(theme) ? darkTheme.colorOnSurface : lightTheme.colorOnSurface;
     }
     function surfaceVariant(theme) {
-        return theme === Material.Dark ? darkTheme.surfaceVariant : lightTheme.surfaceVariant;
+        return isDark(theme) ? darkTheme.surfaceVariant : lightTheme.surfaceVariant;
     }
     function onSurfaceVariant(theme) {
-        return theme === Material.Dark ? darkTheme.colorOnSurfaceVariant : lightTheme.colorOnSurfaceVariant;
+        return isDark(theme) ? darkTheme.colorOnSurfaceVariant : lightTheme.colorOnSurfaceVariant;
     }
 
     function outline(theme) {
-        return theme === Material.Dark ? darkTheme.outline : lightTheme.outline;
+        return isDark(theme) ? darkTheme.outline : lightTheme.outline;
     }
     function outlineVariant(theme) {
-        return theme === Material.Dark ? darkTheme.outlineVariant : lightTheme.outlineVariant;
+        return isDark(theme) ? darkTheme.outlineVariant : lightTheme.outlineVariant;
     }
 
     function shadow(theme) {
-        return theme === Material.Dark ? darkTheme.shadow : lightTheme.shadow;
+        return isDark(theme) ? darkTheme.shadow : lightTheme.shadow;
     }
     function scrim(theme) {
-        return theme === Material.Dark ? darkTheme.scrim : lightTheme.scrim;
+        return isDark(theme) ? darkTheme.scrim : lightTheme.scrim;
     }
 
     function inverseSurface(theme) {
-        return theme === Material.Dark ? darkTheme.inverseSurface : lightTheme.inverseSurface;
+        return isDark(theme) ? darkTheme.inverseSurface : lightTheme.inverseSurface;
     }
     function inverseOnSurface(theme) {
-        return theme === Material.Dark ? darkTheme.inverseOnSurface : lightTheme.inverseOnSurface;
+        return isDark(theme) ? darkTheme.inverseOnSurface : lightTheme.inverseOnSurface;
     }
     function inversePrimary(theme) {
-        return theme === Material.Dark ? darkTheme.inversePrimary : lightTheme.inversePrimary;
+        return isDark(theme) ? darkTheme.inversePrimary : lightTheme.inversePrimary;
     }
 
     function primaryFixed(theme) {
-        return theme === Material.Dark ? darkTheme.primaryFixed : lightTheme.primaryFixed;
+        return isDark(theme) ? darkTheme.primaryFixed : lightTheme.primaryFixed;
     }
     function onPrimaryFixed(theme) {
-        return theme === Material.Dark ? darkTheme.colorOnPrimaryFixed : lightTheme.colorOnPrimaryFixed;
+        return isDark(theme) ? darkTheme.colorOnPrimaryFixed : lightTheme.colorOnPrimaryFixed;
     }
     function primaryFixedDim(theme) {
-        return theme === Material.Dark ? darkTheme.primaryFixedDim : lightTheme.primaryFixedDim;
+        return isDark(theme) ? darkTheme.primaryFixedDim : lightTheme.primaryFixedDim;
     }
     function onPrimaryFixedVariant(theme) {
-        return theme === Material.Dark ? darkTheme.colorOnPrimaryFixedVariant : lightTheme.colorOnPrimaryFixedVariant;
+        return isDark(theme) ? darkTheme.colorOnPrimaryFixedVariant : lightTheme.colorOnPrimaryFixedVariant;
     }
 
     function secondaryFixed(theme) {
-        return theme === Material.Dark ? darkTheme.secondaryFixed : lightTheme.secondaryFixed;
+        return isDark(theme) ? darkTheme.secondaryFixed : lightTheme.secondaryFixed;
     }
     function onSecondaryFixed(theme) {
-        return theme === Material.Dark ? darkTheme.colorOnSecondaryFixed : lightTheme.colorOnSecondaryFixed;
+        return isDark(theme) ? darkTheme.colorOnSecondaryFixed : lightTheme.colorOnSecondaryFixed;
     }
     function secondaryFixedDim(theme) {
-        return theme === Material.Dark ? darkTheme.secondaryFixedDim : lightTheme.secondaryFixedDim;
+        return isDark(theme) ? darkTheme.secondaryFixedDim : lightTheme.secondaryFixedDim;
     }
     function onSecondaryFixedVariant(theme) {
-        return theme === Material.Dark ? darkTheme.colorOnSecondaryFixedVariant : lightTheme.colorOnSecondaryFixedVariant;
+        return isDark(theme) ? darkTheme.colorOnSecondaryFixedVariant : lightTheme.colorOnSecondaryFixedVariant;
     }
 
     function tertiaryFixed(theme) {
-        return theme === Material.Dark ? darkTheme.tertiaryFixed : lightTheme.tertiaryFixed;
+        return isDark(theme) ? darkTheme.tertiaryFixed : lightTheme.tertiaryFixed;
     }
     function onTertiaryFixed(theme) {
-        return theme === Material.Dark ? darkTheme.colorOnTertiaryFixed : lightTheme.colorOnTertiaryFixed;
+        return isDark(theme) ? darkTheme.colorOnTertiaryFixed : lightTheme.colorOnTertiaryFixed;
     }
     function tertiaryFixedDim(theme) {
-        return theme === Material.Dark ? darkTheme.tertiaryFixedDim : lightTheme.tertiaryFixedDim;
+        return isDark(theme) ? darkTheme.tertiaryFixedDim : lightTheme.tertiaryFixedDim;
     }
     function onTertiaryFixedVariant(theme) {
-        return theme === Material.Dark ? darkTheme.colorOnTertiaryFixedVariant : lightTheme.colorOnTertiaryFixedVariant;
+        return isDark(theme) ? darkTheme.colorOnTertiaryFixedVariant : lightTheme.colorOnTertiaryFixedVariant;
     }
 
     function surfaceDim(theme) {
-        return theme === Material.Dark ? darkTheme.surfaceDim : lightTheme.surfaceDim;
+        return isDark(theme) ? darkTheme.surfaceDim : lightTheme.surfaceDim;
     }
     function surfaceBright(theme) {
-        return theme === Material.Dark ? darkTheme.surfaceBright : lightTheme.surfaceBright;
+        return isDark(theme) ? darkTheme.surfaceBright : lightTheme.surfaceBright;
     }
     function surfaceContainerLowest(theme) {
-        return theme === Material.Dark ? darkTheme.surfaceContainerLowest : lightTheme.surfaceContainerLowest;
+        return isDark(theme) ? darkTheme.surfaceContainerLowest : lightTheme.surfaceContainerLowest;
     }
     function surfaceContainerLow(theme) {
-        return theme === Material.Dark ? darkTheme.surfaceContainerLow : lightTheme.surfaceContainerLow;
+        return isDark(theme) ? darkTheme.surfaceContainerLow : lightTheme.surfaceContainerLow;
     }
     function surfaceContainer(theme) {
-        return theme === Material.Dark ? darkTheme.surfaceContainer : lightTheme.surfaceContainer;
+        return isDark(theme) ? darkTheme.surfaceContainer : lightTheme.surfaceContainer;
     }
     function surfaceContainerHigh(theme) {
-        return theme === Material.Dark ? darkTheme.surfaceContainerHigh : lightTheme.surfaceContainerHigh;
+        return isDark(theme) ? darkTheme.surfaceContainerHigh : lightTheme.surfaceContainerHigh;
     }
     function surfaceContainerHighest(theme) {
-        return theme === Material.Dark ? darkTheme.surfaceContainerHighest : lightTheme.surfaceContainerHighest;
+        return isDark(theme) ? darkTheme.surfaceContainerHighest : lightTheme.surfaceContainerHighest;
     }
 
     // ── Music-tinted accents ──────────────────────────────────────────────────
     // Hero surfaces blend primary into tertiary so every palette gets a warm,
     // stage-light gradient without adding new palette entries.
     function heroStart(theme) {
-        return theme === Material.Dark ? Qt.darker(primaryContainer(theme), 1.1) : primary(theme);
+        return isDark(theme) ? Qt.darker(primaryContainer(theme), 1.1) : primary(theme);
     }
     function heroEnd(theme) {
-        return theme === Material.Dark ? tertiaryContainer(theme) : Qt.tint(tertiary(theme), Qt.alpha(primary(theme), 0.25));
+        return isDark(theme) ? tertiaryContainer(theme) : Qt.tint(tertiary(theme), Qt.alpha(primary(theme), 0.25));
     }
     function onHero(theme) {
-        return theme === Material.Dark ? onPrimaryContainer(theme) : onPrimary(theme);
+        return isDark(theme) ? onPrimaryContainer(theme) : onPrimary(theme);
     }
 
     // One color scale for lesson scores everywhere (lists, rings, results).
     function scoreColor(score, theme) {
         if (score >= 90)
-            return theme === Material.Dark ? "#81C784" : "#2E7D32";
+            return isDark(theme) ? "#81C784" : "#2E7D32";
         if (score >= 70)
-            return theme === Material.Dark ? "#FFB74D" : "#E65100";
+            return isDark(theme) ? "#FFB74D" : "#E65100";
         if (score > 0)
-            return theme === Material.Dark ? "#E57373" : "#C62828";
+            return isDark(theme) ? "#E57373" : "#C62828";
         return outlineVariant(theme);
     }
 

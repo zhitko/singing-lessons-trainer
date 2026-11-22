@@ -23,7 +23,7 @@ struct AppSettings {
     // Exponent p of the mean tonal error. 3 = cubic mean. See tonalerror.h.
     // The exact formula still needs Boris Lobanov's confirmation.
     double tonalErrorPower = 3.0;
-    std::string theme = "light";
+    std::string theme = "system";
     // Font size multiplier: 1.0 = Normal (x1), 1.5 = Big (x1.5), 2.0 = Large (x2)
     double fontSizeMultiplier = 1.0;
 
