@@ -463,9 +463,11 @@ OpenMP: desktop uses `find_package(OpenMP)`; Android locates NDK `libomp` and li
 
 ## App icons
 
-The Chinese launcher and adaptive icons are generated from
-`packaging/google-play/icon-512-zh.png` (中文 mark). The manifest already
-references `@mipmap/ic_launcher` and `@mipmap/ic_launcher_round`.
+Launcher and adaptive icons are generated from
+`res/icons/intontrainer.png` (microphone, two notes, curved staff). The
+manifest references `@mipmap/ic_launcher` and `@mipmap/ic_launcher_round`.
+`packaging/google-play/icon-512-zh.png` is the inherited Chinese-edition
+mark and is not the source for this app's launcher.
 
 Legacy launcher resources:
 
@@ -492,9 +494,12 @@ android/res/drawable-xxxhdpi/ic_launcher_foreground.png    (432×432)
 android/res/values/colors.xml                              (#F9F9FF background)
 ```
 
-The opaque **512×512** Play Console icon for this Chinese edition is
-`packaging/google-play/icon-512-zh.png`. The same file is the source for the
-Android launcher / adaptive icons under `android/res/`.
+The opaque **512×512** Play Console icon is
+`packaging/google-play/icon-512.png`, flattened from
+`res/icons/intontrainer.png`. That PNG is also the source for the Android
+launcher and adaptive icons under `android/res/`. The adaptive foreground
+is scaled to 70% of the 108dp canvas so the side notes stay inside the
+66dp safe zone.
 
 The upload-ready **1024×500** feature graphic is
 `packaging/google-play/feature-graphic-zh.png` (24-bit sRGB PNG, no alpha).

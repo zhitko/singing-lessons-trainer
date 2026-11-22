@@ -5,16 +5,17 @@ published. `store-listing.md` is the listing for this app, in English and
 Russian. Do not upload it under an Inton Trainer package, and do not paste the
 Chinese-edition listing or the privacy URL of that other product.
 
-The icon, feature graphic, and screenshots in this folder are still the
-inherited Inton Trainer artwork and captures. Replace them before any Play
-submission. Launcher icons in `android/res/` are generated from that same
-inherited art.
+The app icon is the Singing Lessons mark (microphone, two notes, curved
+staff). `res/icons/intontrainer.png` is the source, and the launcher bitmaps
+in `android/res/` are generated from it. The feature graphic and screenshots
+in this folder are still the inherited Inton Trainer artwork. Replace those
+before any Play submission.
 
 | File | Role |
 |---|---|
 | `store-listing.md` | Listing text for this app (EN + RU), contact fields, category, What’s new |
-| `icon-512.png` | Inherited 512×512 icon. Not final art for this app |
-| `icon-512-zh.png` | Inherited icon. Also the current source of `android/res/` launcher icons |
+| `icon-512.png` | 512×512 Play icon, flattened from `res/icons/intontrainer.png` |
+| `icon-512-zh.png` | Inherited Chinese-edition icon. Not used for this app's launcher |
 | `feature-graphic-zh.png` | Inherited feature graphic. Do not upload it for this app |
 | `feature-graphic-zh.svg` | Vector source of that inherited graphic |
 | `screenshots/` | Inherited captures of the other product. Recapture this app first |
@@ -22,7 +23,7 @@ inherited art.
 
 ## Before a Play upload
 
-1. Replace the icon, feature graphic, and screenshots with captures of Singing Lessons Trainer.
+1. Replace the feature graphic and screenshots with captures of Singing Lessons Trainer. The icon is already this app's mark.
 2. Open **Grow users → Store presence → Main store listing**.
 3. Copy the English name, short description, and full description from `store-listing.md`.
 4. Add a **Russian** translation and paste the RU fields.
