@@ -60,7 +60,7 @@ The default exponent is **p = 3** (the cube root of the mean of the cubes), so o
 
 Change `p` with **Tonal Error Power** in the **Error calculation** section of the Settings page. The same value is `tonalErrorPower` in the `[%General]` section of `settings.ini`. Boris Lobanov's exact formula was a picture in his notes, and that picture was lost. This power mean is the calculation in the app until he confirms it.
 
-The graph uses the same colors in the Light and Dark themes: red for the reference (`#d62728`), dark brown for your take (`#83270b`), and a green band on the nucleus. The plot panel is a light background in both themes, so the Dark theme chart stays readable and the curves do not change hue.
+The graph uses the same colors in the Light and Dark themes: the reference is a wide, light blue line (`#0072B2`), your take is a thin orange line (`#D55E00`), and each nucleus has a gray band. These colors stay distinct for people with color blindness, and the two curves also differ by width. The plot panel is a light background in both themes, so the Dark theme chart stays readable and the curves do not change hue.
 
 Older similarity values stored from previous sessions do not include an error. The error percent appears after you sing in this session.
 

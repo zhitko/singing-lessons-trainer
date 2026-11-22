@@ -140,7 +140,7 @@ Page {
     readonly property int controlFooterMinHeight: isCompact ? (isShort ? 100 : 112) : 140
     readonly property int graphMinHeight: {
         const card = isCompact ? 56 : 80
-        const gaps = (isCompact ? 10 : 16) * 2 + pagePadding * 2
+        const gaps = (isCompact ? 10 : 16) * 2 + (isCompact ? 4 : 8) * 2
         const floor = (isShort && isCompact) ? 120 : (isShort ? 160 : (isCompact ? 180 : (isNarrow ? 220 : 280)))
         const available = scrollView.availableHeight
         if (available > 0)
@@ -850,7 +850,9 @@ Page {
             width: Math.max(0, Math.min(AppScale.maxContentWidth, scrollView.availableWidth - root.pagePadding * 2))
             x: (scrollView.availableWidth - width) / 2
             y: root.isCompact ? 4 : 8
-            height: Math.max(implicitHeight, scrollView.availableHeight - root.pagePadding * 2)
+            // Same small gap below the content as above it, so the graph
+            // takes the leftover height instead of empty page padding.
+            height: Math.max(implicitHeight, scrollView.availableHeight - y * 2)
             spacing: root.isCompact ? 10 : 16
 
             // Result card: similarity and tonal error, each with recent history
@@ -921,9 +923,15 @@ Page {
                 anchors.margins: root.isCompact ? 8 : 14
                 anchors.topMargin: root.isCompact ? 12 : 18
                 independentScale: true
-                datasetColors: ["#d62728", "#83270b"]
-                lineWidth: root.isCompact ? 3.5 : 5
+                // Okabe-Ito blue (reference) and vermillion (your take) stay
+                // distinct for red-green and blue-yellow color blindness. The
+                // reference is also a wider, translucent "target" line.
+                datasetColors: ["#0072B2", "#D55E00"]
+                datasetWidthScales: [2.0, 1.0]
+                datasetOpacities: [0.55, 1.0]
+                lineWidth: root.isCompact ? 3 : 4
                 showCueLabels: false
+                showYAxis: false
                 cueNLabels: root.referenceFileName.replace(/\([^)]*\)/g, "").replace(/^[^,]*?\s-\s*/, "").replace(/^\s*\d+\s*/, "").split(",").map(s => s.trim())
             }
             }
@@ -936,7 +944,6 @@ Page {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
                 Layout.minimumHeight: root.controlFooterMinHeight
-                Layout.bottomMargin: root.pagePadding
                 spacing: root.isCompact ? 4 : 8
 
                 Item {
@@ -1253,119 +1260,129 @@ Page {
             }
 
 
-            // Pause/Resume VAD Button
-            Button {
-                id: pauseVadButton
+            // Pause and Open Test File share one row so the graph gets the
+            // height a second stacked button row would take.
+            RowLayout {
+                id: secondaryActions
                 Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: root.isCompact ? 200 : 160
-                Layout.maximumWidth: pageLayout.width
-                Layout.preferredHeight: 48
-                flat: false
-                visible: (window.settingsApi ? window.settingsApi.autoStopRecording : false)
-                         && root.trainingMode === 0
+                Layout.fillWidth: true
+                Layout.maximumWidth: implicitWidth
+                spacing: root.isCompact ? 8 : 12
+                visible: pauseVadButton.visible || openTestFileButton.visible
 
-                contentItem: Text {
-                    text: root._isVadPaused ? qsTr("Continue") : qsTr("Pause")
-                    font.pixelSize: AppScale.fs(16)
-                    font.weight: 600
-                    color: Theme.onSecondaryContainer(root.Material.theme)
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                // Pause/Resume VAD Button
+                Button {
+                    id: pauseVadButton
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: root.isCompact ? 140 : 160
+                    Layout.maximumWidth: Layout.preferredWidth
+                    Layout.preferredHeight: 48
+                    flat: false
+                    visible: (window.settingsApi ? window.settingsApi.autoStopRecording : false)
+                             && root.trainingMode === 0
 
-                    Behavior on text {
-                        enabled: false
-                    }
-                }
-
-                background: Rectangle {
-                    radius: height / 2
-                    color: Theme.secondaryContainer(root.Material.theme)
-                    border.width: pauseVadButton.visualFocus ? 2 : 0
-                    border.color: Theme.primary(root.Material.theme)
-                    scale: pauseVadButton.pressed ? 0.97 : 1.0
-                    Behavior on scale {
-                        NumberAnimation { duration: 100 }
-                    }
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: parent.radius
+                    contentItem: Text {
+                        text: root._isVadPaused ? qsTr("Continue") : qsTr("Pause")
+                        font.pixelSize: AppScale.fs(16)
+                        font.weight: 600
                         color: Theme.onSecondaryContainer(root.Material.theme)
-                        opacity: pauseVadButton.pressed ? 0.12 : (pauseVadButton.hovered ? 0.08 : 0)
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+
+                        Behavior on text {
+                            enabled: false
+                        }
+                    }
+
+                    background: Rectangle {
+                        radius: height / 2
+                        color: Theme.secondaryContainer(root.Material.theme)
+                        border.width: pauseVadButton.visualFocus ? 2 : 0
+                        border.color: Theme.primary(root.Material.theme)
+                        scale: pauseVadButton.pressed ? 0.97 : 1.0
+                        Behavior on scale {
+                            NumberAnimation { duration: 100 }
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: Theme.onSecondaryContainer(root.Material.theme)
+                            opacity: pauseVadButton.pressed ? 0.12 : (pauseVadButton.hovered ? 0.08 : 0)
+                        }
+                    }
+
+                    onClicked: {
+                        if (root._isVadPaused) {
+                            // Resume VAD without recalibration (calibration already performed on HomePage)
+                            root._isVadPaused = false;
+                            startRecording();
+                        } else {
+                            // Pause VAD
+                            root._isVadPaused = true;
+                            cancelPendingRecording();
+                            trainingAudioApi.stopRecording();
+                        }
                     }
                 }
 
-                onClicked: {
-                    if (root._isVadPaused) {
-                        // Resume VAD without recalibration (calibration already performed on HomePage)
-                        root._isVadPaused = false;
-                        startRecording();
-                    } else {
-                        // Pause VAD
-                        root._isVadPaused = true;
-                        cancelPendingRecording();
-                        trainingAudioApi.stopRecording();
-                    }
-                }
-            }
+                // Open Test File Button (desktop only — file picker is not used on mobile)
+                Button {
+                    id: openTestFileButton
+                    visible: !AppScale.isMobile
+                    Layout.fillWidth: true
+                    Layout.preferredWidth: root.isCompact ? 160 : 200
+                    Layout.maximumWidth: Layout.preferredWidth
+                    Layout.preferredHeight: 48
+                    flat: false
 
-            // Open Test File Button (desktop only — file picker is not used on mobile)
-            Button {
-                id: openTestFileButton
-                visible: !AppScale.isMobile
-                Layout.alignment: Qt.AlignHCenter
-                Layout.preferredWidth: root.isCompact ? 200 : 240
-                Layout.maximumWidth: pageLayout.width
-                Layout.preferredHeight: 48
-                Layout.bottomMargin: root.pagePadding
-                flat: false
-
-                contentItem: Text {
-                    text: qsTr("Open Test File")
-                    font.pixelSize: AppScale.fs(16)
-                    font.weight: 600
-                    color: Theme.primary(root.Material.theme)
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                background: Rectangle {
-                    radius: height / 2
-                    color: "transparent"
-                    border.width: openTestFileButton.visualFocus ? 2 : 1
-                    border.color: openTestFileButton.visualFocus ? Theme.primary(root.Material.theme) : Theme.outline(root.Material.theme)
-                    scale: openTestFileButton.pressed ? 0.97 : 1.0
-                    Behavior on scale {
-                        NumberAnimation { duration: 100 }
-                    }
-
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: parent.radius
+                    contentItem: Text {
+                        text: qsTr("Open Test File")
+                        font.pixelSize: AppScale.fs(16)
+                        font.weight: 600
                         color: Theme.primary(root.Material.theme)
-                        opacity: openTestFileButton.pressed ? 0.12 : (openTestFileButton.hovered ? 0.08 : 0)
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
                     }
-                }
 
-                onClicked: {
-                    // Stop recording before opening the dialog
-                    _wasRecordingBeforeDialog = trainingAudioApi.isRecording;
-                    cancelPendingRecording();
-                    root.guidedState = root.gsIdle;
-                    if (_wasRecordingBeforeDialog) {
-                        console.log("Stopping recording before opening test file dialog");
-                        _isExiting = true; // Prevent automatic restart when stopping
-                        trainingAudioApi.stopRecording();
+                    background: Rectangle {
+                        radius: height / 2
+                        color: "transparent"
+                        border.width: openTestFileButton.visualFocus ? 2 : 1
+                        border.color: openTestFileButton.visualFocus ? Theme.primary(root.Material.theme) : Theme.outline(root.Material.theme)
+                        scale: openTestFileButton.pressed ? 0.97 : 1.0
+                        Behavior on scale {
+                            NumberAnimation { duration: 100 }
+                        }
+
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: parent.radius
+                            color: Theme.primary(root.Material.theme)
+                            opacity: openTestFileButton.pressed ? 0.12 : (openTestFileButton.hovered ? 0.08 : 0)
+                        }
                     }
+
+                    onClicked: {
+                        // Stop recording before opening the dialog
+                        _wasRecordingBeforeDialog = trainingAudioApi.isRecording;
+                        cancelPendingRecording();
+                        root.guidedState = root.gsIdle;
+                        if (_wasRecordingBeforeDialog) {
+                            console.log("Stopping recording before opening test file dialog");
+                            _isExiting = true; // Prevent automatic restart when stopping
+                            trainingAudioApi.stopRecording();
+                        }
                     
-                    var testFolderPath = fileApi.getApplicationDirPath() + "/data/test";
-                    console.log("Opening test file dialog: " + testFolderPath);
-                    if (!fileApi.directoryExists(testFolderPath)) {
-                        console.warn("Directory does not exist: " + testFolderPath);
-                    } else {
-                        // Use FileApi helper to get properly formatted URL (crucial for Windows to avoid UNC timeout)
-                        testFileDialog.currentFolder = fileApi.getUrlFromPath(testFolderPath);
-                        testFileDialog.open();
+                        var testFolderPath = fileApi.getApplicationDirPath() + "/data/test";
+                        console.log("Opening test file dialog: " + testFolderPath);
+                        if (!fileApi.directoryExists(testFolderPath)) {
+                            console.warn("Directory does not exist: " + testFolderPath);
+                        } else {
+                            // Use FileApi helper to get properly formatted URL (crucial for Windows to avoid UNC timeout)
+                            testFileDialog.currentFolder = fileApi.getUrlFromPath(testFolderPath);
+                            testFileDialog.open();
+                        }
                     }
                 }
             }

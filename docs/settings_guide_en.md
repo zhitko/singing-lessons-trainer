@@ -24,7 +24,7 @@ The label shown next to the active language on the home screen. It is not the tr
 
 ### Theme
 
-Light, dark, or the system theme. Pitch-chart colors stay the light-theme colors in every theme, and the chart panel stays light.
+Light, dark, or the system theme. Pitch-chart colors are the same color-blind-safe colors in every theme, and the chart panel stays light.
 
 ### Primary Color
 

@@ -12,6 +12,10 @@ Column {
     property var cuePoints: []
     property bool independentScale: false
     property var datasetColors: []
+    // Per-dataset multipliers of lineWidth and stroke opacities (default 1.0),
+    // so curves can differ by shape as well as by color.
+    property var datasetWidthScales: []
+    property var datasetOpacities: []
     property var cueNLabels: []
     property double lineWidth: 2.5
     property bool showCueLabels: true
@@ -23,11 +27,18 @@ Column {
 
     // Chart ink is the Light theme's, in both themes. The plot itself is a
     // light panel so the Dark theme chart stays readable and the curves
-    // (and the green nucleus bands) match the Light theme exactly.
-    readonly property color chartPlotBackground: "#F9F9FF"
-    readonly property color chartNucleus: "#4CAF50"
-    readonly property color chartPause: "#ffffff"
+    // (and the green nucleus bands) match the Light theme exactly. In Dark
+    // the panel is a slightly softer light tone to reduce glare.
+    readonly property bool darkTheme: Theme.isDark(Material.theme)
+    readonly property color chartPlotBackground: darkTheme ? "#E9ECF4" : "#F9F9FF"
+    // Neutral gray so nucleus bands read the same for every color vision
+    // type and do not compete with the curve hues.
+    readonly property color chartNucleus: "#7A8294"
     readonly property color chartInk: "#74777F"
+    readonly property real plotRadius: 12
+    property bool showYAxis: true
+
+    onDarkThemeChanged: canvas.requestPaint()
 
     Canvas {
         id: canvas
@@ -134,7 +145,7 @@ Column {
             }
 
             // Reserve space for Y axis and paddings
-            var leftMargin = 40;
+            var leftMargin = root.showYAxis ? 40 : 0;
             var topPadding = 10;
             var bottomPadding = (root.cueNLabels && root.cueNLabels.length > 0) ? 40 : 20;
             var graphWidth = canvas.width - leftMargin;
@@ -151,8 +162,29 @@ Column {
 
             // Light plot panel in both themes. Cue bands and curves are drawn
             // on top of this, so their colors no longer depend on the page.
+            var plotRadius = Math.min(root.plotRadius, graphHeight / 4, graphWidth / 4);
+            function plotPath() {
+                ctx.beginPath();
+                ctx.roundedRect(leftMargin, topPadding, graphWidth, graphHeight, plotRadius, plotRadius);
+            }
+            plotPath();
             ctx.fillStyle = root.chartPlotBackground;
-            ctx.fillRect(leftMargin, topPadding, graphWidth, graphHeight);
+            ctx.fill();
+
+            // Faint horizontal guides at quarter heights.
+            ctx.save();
+            plotPath();
+            ctx.clip();
+            ctx.strokeStyle = Qt.alpha(root.chartInk, 0.14);
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            for (var gi = 1; gi < 4; gi++) {
+                var gy = Math.round(topPadding + graphHeight * gi / 4) + 0.5;
+                ctx.moveTo(leftMargin, gy);
+                ctx.lineTo(leftMargin + graphWidth, gy);
+            }
+            ctx.stroke();
+            ctx.restore();
 
             function scaleY(y, datasetIndex) {
                 // If independentScale is enabled and a datasetIndex is provided,
@@ -166,38 +198,47 @@ Column {
                     if (range === 0)
                         range = 1.0;
                 }
-                // Y is inverted in canvas, so we subtract from height
-                let scaledY = (y - min) / range * graphHeight;
+                // Y is inverted in canvas, so we subtract from height. Curves
+                // keep half of the widest line from the panel edge so thick
+                // lines are not cut off at the extremes.
+                var maxScale = 1.0;
+                for (var si = 0; si < (root.datasetWidthScales ? root.datasetWidthScales.length : 0); si++)
+                    maxScale = Math.max(maxScale, root.datasetWidthScales[si]);
+                var inset = Math.min(root.lineWidth * maxScale / 2 + 1, graphHeight / 4);
+                var h = graphHeight - 2 * inset;
+                let scaledY = (y - min) / range * h;
                 if (scaledY < 0)
-                    return graphHeight + topPadding;
-                if (scaledY > graphHeight)
-                    return topPadding;
-                return graphHeight + topPadding - scaledY;
+                    scaledY = 0;
+                if (scaledY > h)
+                    scaledY = h;
+                return topPadding + inset + h - scaledY;
             }
 
-            // Draw Y axis
-            ctx.strokeStyle = root.chartInk;
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(leftMargin, topPadding);
-            ctx.lineTo(leftMargin, canvas.height - bottomPadding);
-            ctx.stroke();
+            if (root.showYAxis) {
+                // Draw Y axis
+                ctx.strokeStyle = root.chartInk;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(leftMargin, topPadding);
+                ctx.lineTo(leftMargin, canvas.height - bottomPadding);
+                ctx.stroke();
 
-            // Draw Y axis marks
-            ctx.beginPath();
-            ctx.moveTo(leftMargin, topPadding);
-            ctx.lineTo(leftMargin - 5, topPadding);
-            ctx.moveTo(leftMargin, canvas.height - bottomPadding);
-            ctx.lineTo(leftMargin - 5, canvas.height - bottomPadding);
-            ctx.stroke();
+                // Draw Y axis marks
+                ctx.beginPath();
+                ctx.moveTo(leftMargin, topPadding);
+                ctx.lineTo(leftMargin - 5, topPadding);
+                ctx.moveTo(leftMargin, canvas.height - bottomPadding);
+                ctx.lineTo(leftMargin - 5, canvas.height - bottomPadding);
+                ctx.stroke();
 
-            // Draw Y axis labels
-            ctx.fillStyle = Theme.onSurfaceVariant(Material.theme);
-            ctx.font = "10px sans-serif";
-            ctx.textAlign = "right";
-            ctx.textBaseline = "middle";
-            ctx.fillText(realMaxY.toFixed(2), leftMargin - 8, topPadding);
-            ctx.fillText(realMinY.toFixed(2), leftMargin - 8, canvas.height - bottomPadding);
+                // Draw Y axis labels
+                ctx.fillStyle = Theme.onSurfaceVariant(Material.theme);
+                ctx.font = "10px sans-serif";
+                ctx.textAlign = "right";
+                ctx.textBaseline = "middle";
+                ctx.fillText(realMaxY.toFixed(2), leftMargin - 8, topPadding);
+                ctx.fillText(realMinY.toFixed(2), leftMargin - 8, canvas.height - bottomPadding);
+            }
 
             // Draw cue points
             ctx.lineWidth = 1;
@@ -205,7 +246,7 @@ Column {
             ctx.textBaseline = "middle";
 
             // Draw 0 mark and line
-            if (minY <= 0 && maxY >= 0) {
+            if (root.showYAxis && minY <= 0 && maxY >= 0) {
                 var y0 = scaleY(0);
 
                 // Draw horizontal line
@@ -244,27 +285,24 @@ Column {
                 var x = scaleX(cue.position);
                 var width = scaleX(cue.position + cue.length) - x;
 
-                if (cue.label.toUpperCase().startsWith("P")) {
-                    ctx.fillStyle = Qt.alpha(root.chartPause, 0.5);
-                    ctx.strokeStyle = root.chartInk;
-                } else if (cue.label.toUpperCase().startsWith("N")) {
-                    ctx.fillStyle = Qt.alpha(root.chartNucleus, 0.28);
-                    ctx.strokeStyle = root.chartInk;
-                } else if (cue.label.toUpperCase().startsWith("T")) {
-                    ctx.fillStyle = Qt.alpha(root.chartPause, 0.5);
-                    ctx.strokeStyle = root.chartInk;
-                } else {
-                    ctx.fillStyle = Qt.alpha(root.chartPause, 0.1);
-                    ctx.strokeStyle = root.chartInk;
+                // Only nucleus bands are tinted. Pauses and transitions show
+                // the plot panel, so they need no fill or border of their own.
+                if (cue.label.toUpperCase().startsWith("N")) {
+                    ctx.save();
+                    plotPath();
+                    ctx.clip();
+                    ctx.fillStyle = Qt.alpha(root.chartNucleus, 0.16);
+                    ctx.fillRect(x, topPadding, width, graphHeight);
+                    ctx.strokeStyle = Qt.alpha(root.chartNucleus, 0.45);
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(Math.round(x) + 0.5, topPadding);
+                    ctx.lineTo(Math.round(x) + 0.5, topPadding + graphHeight);
+                    ctx.moveTo(Math.round(x + width) - 0.5, topPadding);
+                    ctx.lineTo(Math.round(x + width) - 0.5, topPadding + graphHeight);
+                    ctx.stroke();
+                    ctx.restore();
                 }
-
-                // Draw rectangle
-                ctx.beginPath();
-                ctx.rect(x, topPadding, width, graphHeight);
-                ctx.fill();
-                ctx.globalAlpha = 0.35;
-                ctx.stroke();
-                ctx.globalAlpha = 1.0;
 
                 // Draw label
                 if (root.showCueLabels || root.cueNLabels.length > 0) {
@@ -321,8 +359,7 @@ Column {
             console.log("Drawing datasets with colors:", colors);
 
             ctx.save();
-            ctx.beginPath();
-            ctx.rect(leftMargin, topPadding, graphWidth, graphHeight);
+            plotPath();
             ctx.clip();
 
             for (var d = 0; d < datasets.length; d++) {
@@ -339,21 +376,18 @@ Column {
                     ctx.lineTo(scaleX(data[i].x), scaleY(data[i].y, d));
                 }
 
-                ctx.strokeStyle = colors[d % colors.length];
-                ctx.lineWidth = root.lineWidth;
+                var widthScale = (root.datasetWidthScales && d < root.datasetWidthScales.length) ? root.datasetWidthScales[d] : 1.0;
+                var opacity = (root.datasetOpacities && d < root.datasetOpacities.length) ? root.datasetOpacities[d] : 1.0;
+                ctx.strokeStyle = Qt.alpha(colors[d % colors.length], opacity);
+                ctx.lineWidth = root.lineWidth * widthScale;
                 ctx.lineJoin = "round";
+                ctx.lineCap = "round";
                 ctx.stroke();
             }
 
             // Draw threshold line OUTSIDE clipping region
             if (root.thresholdValue !== null && typeof root.thresholdValue === "number") {
-                // Calculate Y position
-                var scaledThresholdY = (root.thresholdValue - minY) / rangeY * graphHeight;
-                var thresholdY = graphHeight + topPadding - scaledThresholdY;
-                
-                // Ensure Y is within visible bounds
-                if (thresholdY < topPadding) thresholdY = topPadding;
-                if (thresholdY > graphHeight + topPadding) thresholdY = graphHeight + topPadding;
+                var thresholdY = scaleY(root.thresholdValue);
 
                 console.log("Drawing threshold line at Y:", thresholdY, "Canvas bounds: top=", topPadding, "bottom=", graphHeight + topPadding, "leftMargin=", leftMargin, "graphWidth=", graphWidth);
                 
@@ -367,6 +401,13 @@ Column {
                 console.log("Threshold line drawn");
             }
             ctx.restore();
+
+            // Thin panel outline, drawn last so bands do not cover it.
+            ctx.beginPath();
+            ctx.roundedRect(leftMargin + 0.5, topPadding + 0.5, graphWidth - 1, graphHeight - 1, plotRadius, plotRadius);
+            ctx.strokeStyle = Qt.alpha(root.chartInk, root.darkTheme ? 0.5 : 0.25);
+            ctx.lineWidth = 1;
+            ctx.stroke();
         }
     }
 
@@ -385,6 +426,10 @@ Column {
     onDatasetColorsChanged: {
         canvas.requestPaint();
     }
+
+    onDatasetWidthScalesChanged: canvas.requestPaint()
+    onDatasetOpacitiesChanged: canvas.requestPaint()
+    onLineWidthChanged: canvas.requestPaint()
 
     onThresholdValueChanged: {
         canvas.requestPaint();

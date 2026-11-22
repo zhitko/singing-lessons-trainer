@@ -74,7 +74,7 @@ Selecting a template opens the **Training Page**:
 - A **score card** at the top shows similarity and, after a take, the tonal-error percent immediately to its right. The similarity number bounces when it updates.
 - A **trend indicator** (▲/▼/●) shows delta versus your immediately previous attempt.
 - Up to **5 recent historical scores** are shown fading out to the right — closest result largest, oldest smallest — giving you an at-a-glance improvement curve.
-- The **pitch graph** plots the reference contour in red (`#d62728`) and your aligned contour in dark brown (`#83270b`). Those colors, the green nucleus bands, and the light plot background are the same in the Light and Dark themes. The Dark theme keeps a light chart panel so the curves stay readable.
+- The **pitch graph** plots the reference contour as a wide, translucent blue line (`#0072B2`) and your aligned contour as a thin vermillion line (`#D55E00`), from the color-blind-safe Okabe-Ito palette. Those colors, the gray nucleus bands, and the light plot background are the same in the Light and Dark themes. The Dark theme keeps a light chart panel so the curves stay readable.
 
 **Playback controls**
 - **Play Reference** — listen to the reference recording while pausing the recording loop.

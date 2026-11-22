@@ -23,8 +23,10 @@ Base: copy of Inton Trainer 2 (zhitko/inton-trainer-2) with Boris's settings.ini
 ## UI
 - [x] Graph colors differ between Light and Dark themes. Keep graph colors the same in both
       themes and make the Dark theme background lighter.
-      Note: the chart uses the Light theme curve and band colors in both themes, and the
-      plot panel is the light surface (`#F9F9FF`) so the Dark theme chart is lighter.
+      Note: the chart uses the same curve and band colors in both themes, and the plot
+      panel is a light surface (`#F9F9FF` in Light, `#E9ECF4` in Dark) so the Dark theme
+      chart is lighter. Curves use the color-blind-safe Okabe-Ito blue (reference, wide and
+      translucent) and vermillion (your take, thin), and nucleus bands are neutral gray.
 
 ## Singing evaluation metrics (from Boris Lobanov, "Вокальные упражнения.docx", Nov 16, 2026)
 
