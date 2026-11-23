@@ -36,9 +36,8 @@
 #   - Qt MinGW 64-bit and its matching MinGW under Qt/Tools
 #
 # Extract the zip to a writable folder. settings.ini, statistics.json, and
-# data/records are stored in by.intoncore/SingingLessonsTrainer under that
-# folder (not shared with Inton Trainer 2). Reference templates are in
-# data/patterns inside the same directory. DLLs stay next to the executable.
+# data/patterns are stored in that folder next to the executable. DLLs stay
+# beside the executable as well.
 # =============================================================================
 
 set -euo pipefail
@@ -823,18 +822,39 @@ run_windeployqt() {
         tail -n 40 "$log" >&2 || true
         exit 1
     fi
-    # Qt 6.12 windeployqt copies plugins next to the executable and does not
-    # always write qt.conf. Without Plugins=., Qt looks in plugins/ and misses them.
-    if [[ ! -f "$PACKAGE_DIR/qt.conf" ]]; then
-        cat > "$PACKAGE_DIR/qt.conf" <<'EOF'
+}
+
+# Qt 6.12 looks up plugins in <exe>/plugins when Qt6Core.dll sits beside the
+# executable, and also in <exe>/<category> via the application directory.
+# windeployqt fills the second layout and may leave a qt.conf that points
+# elsewhere. Keep both layouts and overwrite qt.conf to match.
+publish_qt_plugins() {
+    local name plugins_value="."
+    for name in platforms imageformats iconengines styles multimedia tls \
+        networkinformation generic platforminputcontexts
+    do
+        if [[ -d "$PACKAGE_DIR/$name" && ! -d "$PACKAGE_DIR/plugins/$name" ]]; then
+            mkdir -p "$PACKAGE_DIR/plugins"
+            cp -a "$PACKAGE_DIR/$name" "$PACKAGE_DIR/plugins/$name"
+            echo "  mirrored $name into plugins/"
+        elif [[ -d "$PACKAGE_DIR/plugins/$name" && ! -d "$PACKAGE_DIR/$name" ]]; then
+            cp -a "$PACKAGE_DIR/plugins/$name" "$PACKAGE_DIR/$name"
+            echo "  mirrored $name next to the executable"
+        fi
+    done
+    if [[ -f "$PACKAGE_DIR/plugins/platforms/qwindows.dll" && ! -f "$PACKAGE_DIR/platforms/qwindows.dll" ]]; then
+        plugins_value="plugins"
+    fi
+    cat > "$PACKAGE_DIR/qt.conf" <<EOF
 [Paths]
 Prefix=.
-Plugins=.
+Plugins=${plugins_value}
 QmlImports=qml
 Translations=translations
 EOF
-        echo "  wrote qt.conf"
-    fi
+    echo "  wrote qt.conf (Plugins=${plugins_value})"
+    [[ -f "$PACKAGE_DIR/platforms/qwindows.dll" || -f "$PACKAGE_DIR/plugins/platforms/qwindows.dll" ]] || \
+        die "Package is missing platforms/qwindows.dll"
 }
 
 copy_named_dlls_from_dir() {
@@ -1099,11 +1119,10 @@ Singing Lessons Trainer
 Version $VERSION
 
 Run SingingLessonsTrainer.exe in this folder.
-Keep the folder writable: settings.ini, statistics.json, and data/records
-are stored in by.intoncore\\SingingLessonsTrainer. Reference templates are
-in data\\patterns inside that directory.
-Leave the DLL files and the qml, platforms, imageformats, and multimedia
-folders next to the program.
+Keep the folder writable: settings.ini, statistics.json, and data\\records
+are stored in this folder. Reference templates are in data\\patterns.
+Leave qt.conf, the DLL files, and the qml, plugins, platforms,
+imageformats, and multimedia folders next to the program.
 
 $runtime_note
 License texts are in LICENSE and the licenses folder.
@@ -1114,21 +1133,92 @@ EOF
 make_zip() {
     local parent="$BUILD_DIR/package"
     rm -f "$ZIP_PATH"
-    if command -v zip >/dev/null 2>&1; then
-        (cd "$parent" && zip -r -q "$ZIP_PATH" "SingingLessonsTrainer")
-        return 0
-    fi
+    # Windows Explorer rejects Unix extra fields, and it rejects the whole
+    # archive when any entry name is longer than 259 bytes. Names are UTF-8
+    # so Cyrillic lesson titles survive extraction.
     "${PYTHON[@]}" - "$ZIP_PATH" "$parent/SingingLessonsTrainer" <<'PY'
+import os
 import sys
-import pathlib
+import time
 import zipfile
+from pathlib import Path
 
-dest = pathlib.Path(sys.argv[1])
-src = pathlib.Path(sys.argv[2])
-with zipfile.ZipFile(dest, "w", compression=zipfile.ZIP_DEFLATED) as archive:
-    for path in src.rglob("*"):
-        if path.is_file():
-            archive.write(path, path.relative_to(src.parent).as_posix())
+dest = Path(sys.argv[1])
+src = Path(sys.argv[2])
+# Windows Explorer rejects these Info-ZIP extra fields.
+forbidden_extra = {0x5455, 0x7075, 0x7875}
+# zipfldr.dll rejects the whole archive when any entry name is 260 bytes
+# or longer. UTF-8 is required so Explorer restores Cyrillic names.
+name_limit = 259
+
+class ExplorerZipInfo(zipfile.ZipInfo):
+    def _encodeFilenameFlags(self):
+        try:
+            encoded = self.filename.encode("ascii")
+            flags = self.flag_bits & ~0x800
+        except UnicodeEncodeError:
+            encoded = self.filename.encode("utf-8")
+            flags = self.flag_bits | 0x800
+        if len(encoded) > name_limit:
+            raise SystemExit(
+                f"zip entry name is {len(encoded)} bytes; Windows Explorer "
+                f"rejects names longer than {name_limit}: {self.filename}")
+        return encoded, flags
+
+def dos_time(path):
+    try:
+        stamp = path.stat().st_mtime
+    except OSError:
+        stamp = time.time()
+    local = time.localtime(stamp)
+    if local.tm_year < 1980:
+        return (1980, 1, 1, 0, 0, 0)
+    return local[:6]
+
+def add(archive, path, arcname, directory):
+    info = ExplorerZipInfo(arcname)
+    info.date_time = dos_time(path)
+    info.create_system = 0
+    info.external_attr = 0x10 if directory else 0x20
+    info.compress_type = zipfile.ZIP_STORED if directory else zipfile.ZIP_DEFLATED
+    if directory:
+        archive.writestr(info, b"")
+        return
+    if path.is_symlink():
+        raise SystemExit(f"refusing to store symlink: {path}")
+    with path.open("rb") as source, archive.open(info, "w") as target:
+        while True:
+            chunk = source.read(1024 * 1024)
+            if not chunk:
+                break
+            target.write(chunk)
+
+with zipfile.ZipFile(dest, "w", compression=zipfile.ZIP_DEFLATED, allowZip64=False) as archive:
+    add(archive, src, src.name + "/", True)
+    for dirpath, dirnames, filenames in os.walk(src):
+        dirnames.sort()
+        filenames.sort()
+        folder = Path(dirpath)
+        relative = Path(src.name) / folder.relative_to(src)
+        for name in dirnames:
+            add(archive, folder / name, (relative / name).as_posix() + "/", True)
+        for name in filenames:
+            add(archive, folder / name, (relative / name).as_posix(), False)
+
+with zipfile.ZipFile(dest) as archive:
+    broken = archive.testzip()
+    if broken:
+        raise SystemExit(f"zip entry failed CRC check: {broken}")
+    for info in archive.infolist():
+        extra = info.extra
+        index = 0
+        while index + 4 <= len(extra):
+            kind = int.from_bytes(extra[index:index + 2], "little")
+            size = int.from_bytes(extra[index + 2:index + 4], "little")
+            if kind in forbidden_extra:
+                raise SystemExit(
+                    f"Windows-incompatible extra field {kind:#x} in {info.filename}")
+            index += 4 + size
 PY
 }
 
@@ -1150,7 +1240,7 @@ package_app() {
     local exe suffix=""
     exe="$(built_exe)" || die "Build finished but $APP_TARGET.exe was not found in $BUILD_DIR"
     PACKAGE_DIR="$BUILD_DIR/package/SingingLessonsTrainer"
-    local DATA_DIR="$PACKAGE_DIR/by.intoncore/SingingLessonsTrainer"
+    local DATA_DIR="$PACKAGE_DIR"
     rm -rf "$BUILD_DIR/package"
     mkdir -p "$PACKAGE_DIR/licenses" "$DATA_DIR"
     cp -a "$exe" "$PACKAGE_DIR/SingingLessonsTrainer.exe"
@@ -1195,6 +1285,7 @@ package_app() {
     if [[ -f "$QT_WINDOWS/plugins/styles/qmodernwindowsstyle.dll" ]]; then
         ensure_plugin "styles/qmodernwindowsstyle.dll"
     fi
+    publish_qt_plugins
 
     echo "Copying compiler and OpenMP runtimes..."
     if [[ "$TOOLCHAIN" == "msvc" ]]; then

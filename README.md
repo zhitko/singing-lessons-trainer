@@ -10,7 +10,7 @@ Install identity (distinct from Inton Trainer 2):
 - Android package: `by.intoncore.singinglessonstrainer` (`versionCode` 1)
 - CMake project / target: `singing-lessons-trainer` / `appsinging-lessons-trainer`
 - Settings organization / application: `by.intoncore` / `SingingLessonsTrainer`
-- Writable data: `<executable directory>/by.intoncore/SingingLessonsTrainer` (AppImage: that directory beside the image; Android: this package's AppDataLocation)
+- Writable data: beside `SingingLessonsTrainer.exe` on Windows (`settings.ini`, `data/patterns`, `data/records`); `<executable directory>/by.intoncore/SingingLessonsTrainer` on Linux and macOS (AppImage: that directory beside the image); Android: this package's AppDataLocation
 
 No prebuilt packages are published yet.
 
@@ -296,7 +296,7 @@ The zip is written to:
 build_windows/SingingLessonsTrainer-<version>-win64.zip
 ```
 
-Extract it to a writable directory and run `SingingLessonsTrainer.exe`. Settings and recordings are stored in `by.intoncore/SingingLessonsTrainer` under that folder. Reference templates are in `data/patterns` there.
+Extract it to a writable directory and run `SingingLessonsTrainer.exe`. Settings, recordings, and the reference templates in `data/patterns` are stored in that folder, beside the program.
 
 To compile on Windows without packaging, from a Visual Studio 2022 x64 prompt:
 
@@ -349,7 +349,7 @@ Packaging scripts write:
 - **Windows**: `SingingLessonsTrainer-<version>-win64.zip` (portable; unzip and run `SingingLessonsTrainer.exe`)
 - **Linux**: `SingingLessonsTrainer-<version>-x86_64.AppImage` (make it executable and run it)
 
-Desktop settings for a local build are in `build/by.intoncore/SingingLessonsTrainer`.
+Desktop settings for a local Linux or macOS build are in `build/by.intoncore/SingingLessonsTrainer`. A Windows build keeps them beside the executable.
 
 ---
 

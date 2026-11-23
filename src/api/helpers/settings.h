@@ -232,7 +232,10 @@ public:
     /**
      * Returns the base directory for application data.
      *
-     * Unpackaged desktop build: <executable dir>/<organization>/<application>.
+     * Windows: the executable directory. The original lesson names must fit
+     * in a zip entry, and Windows Explorer rejects any entry longer than
+     * 259 bytes.
+     * Linux and macOS: <executable dir>/<organization>/<application>.
      * AppImage: that same organization/application directory beside the
      * .AppImage file. The mounted payload cannot store settings or recordings.
      * If that directory cannot be written, AppDataLocation is used (it already
@@ -241,8 +244,8 @@ public:
      * seedBundledAppImageFiles().
      * Android: writable AppDataLocation for this package id, where startup
      * extracts bundled assets.
-     * The organization (by.intoncore) and application (SingingLessonsTrainer)
-     * names keep this data separate from Inton Trainer 2.
+     * On Linux and macOS the organization (by.intoncore) and application
+     * (SingingLessonsTrainer) names keep this data separate from Inton Trainer 2.
      */
     static QString getAppDataDir();
 

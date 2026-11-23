@@ -24,6 +24,16 @@
 #include "qmllogger.h"
 #include "src/services/helpers/fileLogger.h"
 
+#ifdef Q_OS_WIN
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <windows.h>
+#endif
+
 #ifdef Q_OS_ANDROID
 /**
  * Extracts bundled assets from the APK to the writable app data directory.
@@ -90,10 +100,74 @@ static void extractAndroidAssets()
 }
 #endif // Q_OS_ANDROID
 
+#ifdef Q_OS_WIN
+// windeployqt places qwindows.dll in platforms\ next to the executable.
+// Qt 6.12's relocatable prefix looks in plugins\ instead, and a qt.conf
+// Prefix of "." can be resolved from the working directory. Point the
+// loader at the folder that actually contains the platform plugin.
+static bool prepareWindowsQtPlugins()
+{
+    wchar_t buffer[32768];
+    const DWORD length = GetModuleFileNameW(nullptr, buffer, 32768);
+    if (length == 0 || length >= 32768)
+        return true;
+
+    const QString exeDir = QFileInfo(QString::fromWCharArray(buffer, int(length))).absolutePath();
+    const QDir dir(exeDir);
+    const auto native = [](const QString& path) {
+        return QDir::toNativeSeparators(path);
+    };
+    const QString exeNative = native(exeDir);
+    SetDllDirectoryW(reinterpret_cast<const wchar_t*>(exeNative.utf16()));
+
+    QString platformDir;
+    if (QFileInfo::exists(dir.filePath(QStringLiteral("platforms/qwindows.dll"))))
+        platformDir = dir.filePath(QStringLiteral("platforms"));
+    else if (QFileInfo::exists(dir.filePath(QStringLiteral("plugins/platforms/qwindows.dll"))))
+        platformDir = dir.filePath(QStringLiteral("plugins/platforms"));
+
+    const bool bundledQt = QFileInfo::exists(dir.filePath(QStringLiteral("Qt6Core.dll")));
+    if (platformDir.isEmpty()) {
+        if (!bundledQt)
+            return true;
+        MessageBoxW(nullptr,
+            L"Singing Lessons Trainer cannot start because platforms\\qwindows.dll "
+            L"was not found next to SingingLessonsTrainer.exe.\n\n"
+            L"Unzip the whole package into a folder and run the program from that folder. "
+            L"Leave the DLL files and the platforms, plugins, and qml folders beside the program.",
+            L"SingingLessonsTrainer",
+            MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    const QString platformNative = native(platformDir);
+    const QString pluginRootNative = native(QFileInfo(platformDir).absolutePath());
+    SetEnvironmentVariableW(L"QT_QPA_PLATFORM_PLUGIN_PATH",
+        reinterpret_cast<const wchar_t*>(platformNative.utf16()));
+    SetEnvironmentVariableW(L"QT_PLUGIN_PATH",
+        reinterpret_cast<const wchar_t*>(pluginRootNative.utf16()));
+
+    const QString qmlDir = dir.filePath(QStringLiteral("qml"));
+    if (QFileInfo::exists(qmlDir + QStringLiteral("/QtQuick/qmldir"))) {
+        const QString qmlNative = native(qmlDir);
+        SetEnvironmentVariableW(L"QML_IMPORT_PATH",
+            reinterpret_cast<const wchar_t*>(qmlNative.utf16()));
+        SetEnvironmentVariableW(L"QML2_IMPORT_PATH",
+            reinterpret_cast<const wchar_t*>(qmlNative.utf16()));
+    }
+    return true;
+}
+#endif
+
 int main(int argc, char* argv[])
 {
     // Initialize file logger (clears the log file)
     FileLogger::getInstance().initialize();
+
+#ifdef Q_OS_WIN
+    if (!prepareWindowsQtPlugins())
+        return 1;
+#endif
 
     QGuiApplication app(argc, argv);
 #ifndef APP_ORGANIZATION

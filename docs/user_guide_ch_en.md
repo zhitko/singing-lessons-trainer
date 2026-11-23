@@ -66,7 +66,7 @@ Older similarity values stored from previous sessions do not include an error. T
 
 ## 5. Where your data is
 
-Recordings, scores, and settings stay on the device. Desktop and AppImage builds use a folder named `by.intoncore/SingingLessonsTrainer` next to the program (next to the image file, for an AppImage). Android uses this app's private storage.
+Recordings, scores, and settings stay on the device. The Windows build keeps them beside the program. Linux and AppImage builds use a folder named `by.intoncore/SingingLessonsTrainer` next to the program (next to the image file, for an AppImage). Android uses this app's private storage.
 
 You can delete individual records. **Delete user data** in Settings removes your statistics and saved recordings on that device. The privacy notice in the app is the full description. The app does not upload audio.
 

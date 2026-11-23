@@ -16,7 +16,7 @@ On the device, and only on the device, the app stores:
 - Training statistics (scores and progress for the lessons you have tried)
 - Your settings, including language, theme, and analysis options
 
-Desktop and AppImage builds keep that data in a folder named `by.intoncore/SingingLessonsTrainer` next to the program (for an AppImage, next to the image file). Android keeps it in this app's private storage. The app does not upload recordings, scores, or settings. It has no account, no analytics, and no network request for this data.
+The Windows build keeps that data beside the program. Linux and AppImage builds keep it in a folder named `by.intoncore/SingingLessonsTrainer` next to the program (for an AppImage, next to the image file). Android keeps it in this app's private storage. The app does not upload recordings, scores, or settings. It has no account, no analytics, and no network request for this data.
 
 ## How long it stays
 

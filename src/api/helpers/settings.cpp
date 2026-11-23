@@ -71,6 +71,14 @@ Settings::getAppDataDir()
     // Organization and application name are set first so a Qt build that
     // appends them to AppDataLocation stays consistent with startup extract.
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+#elif defined(Q_OS_WIN)
+    // Lesson files keep their original Cyrillic names. Placing them under
+    // by.intoncore/SingingLessonsTrainer makes the longest name more than
+    // 259 bytes in UTF-8, and Windows Explorer then rejects the whole zip.
+    // The portable folder is already private to this program.
+    const QString dir = QCoreApplication::applicationDirPath();
+    QDir().mkpath(dir);
+    return dir;
 #else
     const QByteArray appImage = qgetenv("APPIMAGE");
     if (!appImage.isEmpty()) {
