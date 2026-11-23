@@ -100,3 +100,4 @@ docs/*.pdf
 *.keystore
 *.bak
 *_bak
+*.sfk
