@@ -53,6 +53,40 @@ WaveFile* initWaveFile()
 
 WaveFile* processFile(WaveFile* waveFile);
 
+#ifdef _WIN32
+// _wfopen fails for paths longer than MAX_PATH (260) unless they carry the
+// \\?\ prefix. The prefix turns off Windows path normalization, so the path
+// must be absolute and use backslashes first; GetFullPathNameW does both.
+// It is declared here because the project's src/api/fileapi.h shadows the
+// system header that declares it, and _wfullpath can fail on long paths.
+extern "C" __declspec(dllimport) unsigned long __stdcall GetFullPathNameW(
+    const wchar_t* fileName, unsigned long bufferLength, wchar_t* buffer, wchar_t** filePart);
+
+static std::wstring windowsExtendedPath(const std::string& utf8Path)
+{
+    const std::wstring path = fs::u8path(utf8Path).wstring();
+    if (path.rfind(L"\\\\?\\", 0) == 0 || path.rfind(L"\\\\.\\", 0) == 0) {
+        return path;
+    }
+
+    const unsigned long needed = GetFullPathNameW(path.c_str(), 0, nullptr, nullptr);
+    if (needed == 0) {
+        return path;
+    }
+    std::wstring full(needed, L'\0');
+    const unsigned long written = GetFullPathNameW(path.c_str(), needed, &full[0], nullptr);
+    if (written == 0 || written >= needed) {
+        return path;
+    }
+    full.resize(written);
+
+    if (full.rfind(L"\\\\", 0) == 0) {
+        return L"\\\\?\\UNC\\" + full.substr(2);
+    }
+    return L"\\\\?\\" + full;
+}
+#endif
+
 WaveFile* waveOpenHFile(int handle)
 {
     LOG_DEBUG() << "Start: wave OpenHFile - handle=" << handle;
@@ -96,8 +130,7 @@ WaveFile* waveOpenFile(const std::string& path)
 
 #ifdef _WIN32
     try {
-        fs::path path_fs = fs::u8path(path);
-        waveFile->file = _wfopen(path_fs.c_str(), L"rb");
+        waveFile->file = _wfopen(windowsExtendedPath(path).c_str(), L"rb");
     } catch (const std::exception& e) {
         LOG_CRITICAL() << "[waveOpenFile] Error converting path: " << e.what();
         waveFile->file = nullptr;
@@ -609,7 +642,9 @@ WaveFile* processFile(WaveFile* waveFile)
             LOG_DEBUG() << "[processFile] Read LABL cuePointID "
                         << INT32(lablChunk->cuePointID);
         } else {
-            LOG_WARNING() << "[processFile] Found unsuppoted chunk " << nextChunkID;
+            // nextChunkID has no terminating NUL, so log exactly 4 bytes.
+            LOG_WARNING() << "[processFile] Found unsuppoted chunk "
+                          << std::string(nextChunkID, sizeof(nextChunkID));
             // We have found a chunk type that we are not going to work with.
             // ISFTL
             // IENGL
@@ -1019,8 +1054,7 @@ void saveWaveFile(WaveFile* waveFile, const std::string& filePath)
     if (waveFile->file == nullptr) {
 #ifdef _WIN32
         try {
-            fs::path path_fs = fs::u8path(filePath);
-            waveFile->file = _wfopen(path_fs.c_str(), L"wb");
+            waveFile->file = _wfopen(windowsExtendedPath(filePath).c_str(), L"wb");
         } catch (const std::exception& e) {
             LOG_CRITICAL() << "[saveWaveFile] Error converting path: " << e.what();
             waveFile->file = nullptr;
