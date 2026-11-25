@@ -136,9 +136,11 @@ Page {
     readonly property bool isShort: AppScale.isShort
     readonly property int pagePadding: AppScale.pagePadding
     readonly property int sideSlotMinWidth: isCompact ? 56 : 72
-    // Just the play button and its one-line hint. Extra padding here
-    // would come out of the chart.
-    readonly property int controlFooterMinHeight: isCompact ? (isShort ? 64 : 72) : 84
+    // Play control is one fixed slot: the button and a single caption line.
+    // Recording and playback swap the contents, they do not change the height.
+    readonly property int playSlotSize: isCompact ? (isShort ? 56 : 64) : 76
+    readonly property int playCaptionHeight: AppScale.fs(isCompact ? (isShort ? 11 : 12) : 14) + 6
+    readonly property int controlFooterMinHeight: playSlotSize + 2 + playCaptionHeight
     // Smallest plot that still shows the contour. The card fills whatever
     // height is left after the result card and the on-screen controls.
     readonly property int graphFloor: (isShort && isCompact) ? 120 : (isShort ? 160 : (isCompact ? 180 : (isNarrow ? 220 : 280)))
@@ -972,7 +974,9 @@ Page {
             RowLayout {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
+                Layout.preferredHeight: root.controlFooterMinHeight
                 Layout.minimumHeight: root.controlFooterMinHeight
+                Layout.maximumHeight: root.controlFooterMinHeight
                 Layout.topMargin: root.isCompact ? -6 : -10
                 spacing: root.isCompact ? 4 : 8
 
@@ -1006,27 +1010,39 @@ Page {
                     id: centerControls
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                     Layout.fillWidth: true
-                    Layout.fillHeight: true
                     Layout.preferredWidth: 200
                     Layout.minimumWidth: 96
                     Layout.maximumWidth: root.isNarrow ? 100000 : 280
+                    Layout.preferredHeight: root.controlFooterMinHeight
+                    Layout.minimumHeight: root.controlFooterMinHeight
+                    Layout.maximumHeight: root.controlFooterMinHeight
                     spacing: 2
                     visible: window.settingsApi ? window.settingsApi.autoStopRecording : false
+                    // Idle shows the play button. From Start until recording
+                    // stops, the same slot shows the meter. Height stays put.
+                    readonly property bool showPlayButton: root.trainingMode === 1
+                            && root.guidedState === root.gsIdle
+                            && !isAnyPlaybackActive
+                            && !trainingAudioApi.isRecording
+
+                    Item {
+                        id: playSlot
+                        Layout.alignment: Qt.AlignHCenter
+                        Layout.preferredWidth: root.playSlotSize
+                        Layout.preferredHeight: root.playSlotSize
+                        Layout.minimumWidth: root.playSlotSize
+                        Layout.minimumHeight: root.playSlotSize
+                        Layout.maximumWidth: root.playSlotSize
+                        Layout.maximumHeight: root.playSlotSize
 
                     // ── Recording indicator with waveform bars ─────────────────
                     Item {
                         id: micLevelIndicator
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: (trainingAudioApi.isRecording || isAnyPlaybackActive)
-                                                ? (root.isCompact ? (root.isShort ? 40 : 48) : 64) : 0
-                        implicitHeight: Layout.preferredHeight
-                        opacity: (trainingAudioApi.isRecording || isAnyPlaybackActive) ? 1.0 : 0.0
+                        anchors.fill: parent
+                        opacity: (!centerControls.showPlayButton
+                                   && (trainingAudioApi.isRecording || isAnyPlaybackActive)) ? 1.0 : 0.0
                         clip: true
 
-                        Behavior on Layout.preferredHeight {
-                            NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
-                        }
                         Behavior on opacity {
                             NumberAnimation { duration: 200 }
                         }
@@ -1137,57 +1153,10 @@ Page {
                         }
                     }
 
-                    Text {
-                        id: statusLabel
-                        Layout.alignment: Qt.AlignHCenter
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: visible ? implicitHeight : 0
-                        visible: !(root.trainingMode === 1 && root.guidedState === root.gsIdle) || isAnyPlaybackActive
-                        text: {
-                            if (root._isVadPaused) return qsTr("Paused");
-                            if (root.trainingMode === 1) {
-                                switch (root.guidedState) {
-                                    case root.gsPlaying:    return qsTr("Playing...");
-                                    case root.gsPending:    return qsTr("Get ready...");
-                                    case root.gsListening:  return qsTr("Listening...");
-                                    case root.gsProcessing: return qsTr("Processing...");
-                                    default: return isAnyPlaybackActive ? qsTr("Playing...") : "";
-                                }
-                            }
-                            return isAnyPlaybackActive ? qsTr("Playing...") :
-                                   (trainingAudioApi.isRecording ? qsTr("Listening...") : qsTr("Processing..."));
-                        }
-                        font.pixelSize: AppScale.fs(root.isCompact ? (root.isShort ? 16 : 18) : 26)
-                        font.weight: 600
-                        horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.WordWrap
-                        maximumLineCount: 2
-                        elide: Text.ElideRight
-                        color: {
-                            if (root._isVadPaused) return Theme.error(root.Material.theme);
-                            if (root.trainingMode === 1) {
-                                if (root.guidedState === root.gsListening)
-                                    return Theme.success(root.Material.theme);
-                                if (root.guidedTimedOut)
-                                    return Theme.error(root.Material.theme);
-                                return Theme.primary(root.Material.theme);
-                            }
-                            return isAnyPlaybackActive ? Theme.primary(root.Material.theme) :
-                                   (trainingAudioApi.isRecording ? Theme.success(root.Material.theme) : Theme.error(root.Material.theme));
-                        }
-                    }
-
                     Item {
                         id: guidedPlayBtn
-                        Layout.alignment: Qt.AlignHCenter
-                        readonly property int btnSize: root.isCompact ? (root.isShort ? 56 : 64) : 76
-                        Layout.preferredWidth: btnSize
-                        Layout.preferredHeight: btnSize
-                        Layout.minimumWidth: btnSize
-                        Layout.minimumHeight: btnSize
-                        implicitWidth: btnSize
-                        implicitHeight: btnSize
-                        visible: root.trainingMode === 1 && root.guidedState === root.gsIdle && !isAnyPlaybackActive && !trainingAudioApi.isRecording
+                        anchors.fill: parent
+                        visible: centerControls.showPlayButton
 
                         Rectangle {
                             id: guidedOuterCircle
@@ -1223,30 +1192,57 @@ Page {
                             }
                         }
                     }
+                    }
 
                     Text {
                         id: hintLabel
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
-                        Layout.preferredHeight: visible ? implicitHeight : 0
-                        visible: hintLabel.text.length > 0
-                        opacity: 0.7
-                        text: {
-                            if (root._isVadPaused) return qsTr("Press Continue to continue recording.");
-                            if (isAnyPlaybackActive) return qsTr("Listen carefully");
-                            if (root.trainingMode === 1 && root.guidedState === root.gsIdle && !isAnyPlaybackActive) {
-                                return root.guidedTimedOut
-                                    ? qsTr("No speech detected — press to try again")
-                                    : qsTr("Press to start");
-                            }
-                            return "";
-                        }
+                        Layout.preferredHeight: root.playCaptionHeight
+                        Layout.minimumHeight: root.playCaptionHeight
+                        Layout.maximumHeight: root.playCaptionHeight
+                        verticalAlignment: Text.AlignVCenter
                         font.pixelSize: AppScale.fs(root.isCompact ? (root.isShort ? 11 : 12) : 14)
-                        color: Theme.onSurface(root.Material.theme)
+                        font.weight: centerControls.showPlayButton ? 400 : 600
+                        opacity: text.length > 0 ? (centerControls.showPlayButton ? 0.7 : 1.0) : 0
                         horizontalAlignment: Text.AlignHCenter
-                        wrapMode: Text.WordWrap
-                        maximumLineCount: 2
+                        wrapMode: Text.NoWrap
                         elide: Text.ElideRight
+                        text: {
+                            if (centerControls.showPlayButton) {
+                                if (root._isVadPaused)
+                                    return qsTr("Press Continue to continue recording.");
+                                if (root.guidedTimedOut)
+                                    return qsTr("No speech detected — press to try again");
+                                return qsTr("Press to start");
+                            }
+                            if (isAnyPlaybackActive)
+                                return qsTr("Listen carefully");
+                            if (root._isVadPaused)
+                                return qsTr("Paused");
+                            if (root.trainingMode === 1) {
+                                switch (root.guidedState) {
+                                    case root.gsPlaying:    return qsTr("Playing...");
+                                    case root.gsPending:    return qsTr("Get ready...");
+                                    case root.gsListening:  return qsTr("Listening...");
+                                    case root.gsProcessing: return qsTr("Processing...");
+                                    default: return "";
+                                }
+                            }
+                            return trainingAudioApi.isRecording ? qsTr("Listening...") : qsTr("Processing...");
+                        }
+                        color: {
+                            if (root._isVadPaused || root.guidedTimedOut)
+                                return Theme.error(root.Material.theme);
+                            if (!centerControls.showPlayButton && root.trainingMode === 1
+                                    && root.guidedState === root.gsListening)
+                                return Theme.success(root.Material.theme);
+                            if (!centerControls.showPlayButton && trainingAudioApi.isRecording)
+                                return Theme.success(root.Material.theme);
+                            return centerControls.showPlayButton
+                                    ? Theme.onSurface(root.Material.theme)
+                                    : Theme.primary(root.Material.theme);
+                        }
                     }
                 }
 
