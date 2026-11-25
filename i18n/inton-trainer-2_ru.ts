@@ -277,6 +277,10 @@
         <translation>Записи</translation>
     </message>
     <message>
+        <source>Open</source>
+        <translation>Открыть</translation>
+    </message>
+    <message>
         <location filename="../ui/Main.qml" line="187"/>
         <location filename="../ui/Main.qml" line="280"/>
         <source>Menu</source>
@@ -1475,13 +1479,13 @@ Yours</source>
     </message>
     <message>
         <location filename="../ui/pages/TrainingPage.qml" line="876"/>
-        <source>Similarity</source>
-        <translation>Сходство</translation>
+        <source>Melodic Similarity</source>
+        <translation>Мелодическое сходство</translation>
     </message>
     <message>
         <location filename="../ui/pages/TrainingPage.qml" line="931"/>
-        <source>Error</source>
-        <translation>Ошибка</translation>
+        <source>Tonal Error</source>
+        <translation>Тональная ошибка</translation>
     </message>
     <message>
         <source>Play &amp; Listen</source>

@@ -136,16 +136,19 @@ Page {
     readonly property bool isShort: AppScale.isShort
     readonly property int pagePadding: AppScale.pagePadding
     readonly property int sideSlotMinWidth: isCompact ? 56 : 72
-    // Status + hint + playback dot must stay above the nav on every phone.
-    readonly property int controlFooterMinHeight: isCompact ? (isShort ? 100 : 112) : 140
+    // Just the play button and its one-line hint. Extra padding here
+    // would come out of the chart.
+    readonly property int controlFooterMinHeight: isCompact ? (isShort ? 64 : 72) : 84
+    // Smallest plot that still shows the contour. The card fills whatever
+    // height is left after the result card and the on-screen controls.
+    readonly property int graphFloor: (isShort && isCompact) ? 120 : (isShort ? 160 : (isCompact ? 180 : (isNarrow ? 220 : 280)))
     readonly property int graphMinHeight: {
-        const card = isCompact ? 56 : 80
+        const card = isCompact ? 48 : 64
         const gaps = (isCompact ? 10 : 16) * 2 + (isCompact ? 4 : 8) * 2
-        const floor = (isShort && isCompact) ? 120 : (isShort ? 160 : (isCompact ? 180 : (isNarrow ? 220 : 280)))
         const available = scrollView.availableHeight
         if (available > 0)
-            return Math.max(100, Math.min(floor, available - card - controlFooterMinHeight - gaps))
-        return floor
+            return Math.max(100, Math.min(graphFloor, available - card - controlFooterMinHeight - gaps))
+        return graphFloor
     }
 
     onTrainingModeChanged: {
@@ -463,6 +466,27 @@ Page {
                     root.hasTonalError = true;
                 }
             }
+        }
+    }
+
+    function openTestFile() {
+        _wasRecordingBeforeDialog = trainingAudioApi.isRecording;
+        cancelPendingRecording();
+        root.guidedState = root.gsIdle;
+        if (_wasRecordingBeforeDialog) {
+            console.log("Stopping recording before opening test file dialog");
+            _isExiting = true; // Prevent automatic restart when stopping
+            trainingAudioApi.stopRecording();
+        }
+
+        var testFolderPath = fileApi.getApplicationDirPath() + "/data/test";
+        console.log("Opening test file dialog: " + testFolderPath);
+        if (!fileApi.directoryExists(testFolderPath)) {
+            console.warn("Directory does not exist: " + testFolderPath);
+        } else {
+            // Use FileApi helper to get properly formatted URL (crucial for Windows to avoid UNC timeout)
+            testFileDialog.currentFolder = fileApi.getUrlFromPath(testFolderPath);
+            testFileDialog.open();
         }
     }
 
@@ -850,16 +874,15 @@ Page {
             width: Math.max(0, Math.min(AppScale.maxContentWidth, scrollView.availableWidth - root.pagePadding * 2))
             x: (scrollView.availableWidth - width) / 2
             y: root.isCompact ? 4 : 8
-            // Same small gap below the content as above it, so the graph
-            // takes the leftover height instead of empty page padding.
-            height: Math.max(implicitHeight, scrollView.availableHeight - y * 2)
+            // No extra gap under the play controls; that height goes to the chart.
+            height: Math.max(implicitHeight, scrollView.availableHeight - y)
             spacing: root.isCompact ? 10 : 16
 
             // Result card: similarity and tonal error, each with recent history
             Rectangle {
                 id: shapeSimilarityCard
                 Layout.fillWidth: true
-                Layout.preferredHeight: resultRow.implicitHeight + (root.isCompact ? 16 : 24)
+                Layout.preferredHeight: resultRow.implicitHeight + (root.isCompact ? 8 : 12)
                 radius: root.isCompact ? 20 : 28
                 clip: true
                 gradient: Gradient {
@@ -873,14 +896,14 @@ Page {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    anchors.margins: root.isCompact ? 8 : 16
+                    anchors.margins: root.isCompact ? 6 : 8
                     spacing: 0
 
                     ResultMetric {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
                         Layout.alignment: Qt.AlignTop
-                        label: qsTr("Similarity")
+                        label: qsTr("Melodic Similarity")
                         value: root.shapeSimilarity
                         hasValue: root.hasSimilarityScore
                         history: root.previousShapeSimilarities
@@ -900,7 +923,7 @@ Page {
                         Layout.fillWidth: true
                         Layout.preferredWidth: 1
                         Layout.alignment: Qt.AlignTop
-                        label: qsTr("Error")
+                        label: qsTr("Tonal Error")
                         value: root.tonalErrorPercent
                         hasValue: root.hasTonalError
                         history: root.previousTonalErrors
@@ -909,7 +932,7 @@ Page {
                 }
             }
 
-            // Main Graph — fills leftover viewport height; shrinks on short/narrow screens
+            // Main graph — fills the space above the on-screen controls.
             SurfaceCard {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -920,15 +943,16 @@ Page {
             WaveFormGraph {
                 id: umpGraph
                 anchors.fill: parent
-                anchors.margins: root.isCompact ? 8 : 14
-                anchors.topMargin: root.isCompact ? 12 : 18
+                anchors.margins: root.isCompact ? 6 : 8
+                anchors.topMargin: root.isCompact ? 2 : 4
+                anchors.bottomMargin: 2
+                plotTopPadding: 2
                 independentScale: true
-                // Okabe-Ito blue (reference) and vermillion (your take) stay
-                // distinct for red-green and blue-yellow color blindness. The
-                // reference is also a wider, translucent "target" line.
-                datasetColors: ["#0072B2", "#D55E00"]
-                datasetWidthScales: [2.0, 1.0]
-                datasetOpacities: [0.55, 1.0]
+                // Reference is dark purple, the take is vermillion. Same stroke
+                // width so the two contours are comparable.
+                datasetColors: ["#4B2A83", "#D55E00"]
+                datasetWidthScales: [1.0, 1.0]
+                datasetOpacities: [1.0, 1.0]
                 lineWidth: root.isCompact ? 3 : 4
                 // Shade the gap between reference and user curves to show
                 // where the take deviates. Only drawn once both curves exist.
@@ -949,6 +973,7 @@ Page {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
                 Layout.minimumHeight: root.controlFooterMinHeight
+                Layout.topMargin: root.isCompact ? -6 : -10
                 spacing: root.isCompact ? 4 : 8
 
                 Item {
@@ -960,7 +985,7 @@ Page {
                     implicitHeight: Math.max(
                         playReferenceBtn.visible ? playReferenceBtn.implicitHeight : 0,
                         playUserBtn.implicitHeight,
-                        72)
+                        56)
 
                     PlayRoundButton {
                         id: playReferenceBtn
@@ -985,7 +1010,7 @@ Page {
                     Layout.preferredWidth: 200
                     Layout.minimumWidth: 96
                     Layout.maximumWidth: root.isNarrow ? 100000 : 280
-                    spacing: root.isShort ? 2 : (root.isCompact ? 4 : 8)
+                    spacing: 2
                     visible: window.settingsApi ? window.settingsApi.autoStopRecording : false
 
                     // ── Recording indicator with waveform bars ─────────────────
@@ -1155,7 +1180,7 @@ Page {
                     Item {
                         id: guidedPlayBtn
                         Layout.alignment: Qt.AlignHCenter
-                        readonly property int btnSize: root.isCompact ? (root.isShort ? 64 : 80) : 96
+                        readonly property int btnSize: root.isCompact ? (root.isShort ? 56 : 64) : 76
                         Layout.preferredWidth: btnSize
                         Layout.preferredHeight: btnSize
                         Layout.minimumWidth: btnSize
@@ -1174,7 +1199,7 @@ Page {
                         Rectangle {
                             id: guidedInnerCircle
                             anchors.centerIn: parent
-                            width: parent.width - 14
+                            width: parent.width - 10
                             height: width
                             radius: width / 2
                             color: root.guidedTimedOut ? Theme.error(Material.theme) : Theme.primary(Material.theme)
@@ -1184,7 +1209,7 @@ Page {
                                 text: root.guidedTimedOut ? Icons.faRedo : Icons.faPlay
                                 font.family: Icons.familySolid
                                 font.weight: Font.Black
-                                font.pixelSize: AppScale.fs(root.isCompact ? 22 : 28)
+                                font.pixelSize: AppScale.fs(root.isCompact ? 18 : 22)
                                 color: root.guidedTimedOut ? Theme.onError(Material.theme) : Theme.onPrimary(Material.theme)
                             }
 
@@ -1204,7 +1229,6 @@ Page {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
                         Layout.preferredHeight: visible ? implicitHeight : 0
-                        Layout.bottomMargin: 2
                         visible: hintLabel.text.length > 0
                         opacity: 0.7
                         text: {
@@ -1265,15 +1289,14 @@ Page {
             }
 
 
-            // Pause and Open Test File share one row so the graph gets the
-            // height a second stacked button row would take.
+            // Pause stays on its own row. Open file lives in the bottom bar.
             RowLayout {
                 id: secondaryActions
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
                 Layout.maximumWidth: implicitWidth
                 spacing: root.isCompact ? 8 : 12
-                visible: pauseVadButton.visible || openTestFileButton.visible
+                visible: pauseVadButton.visible
 
                 // Pause/Resume VAD Button
                 Button {
@@ -1331,65 +1354,6 @@ Page {
                     }
                 }
 
-                // Open Test File Button (desktop only — file picker is not used on mobile)
-                Button {
-                    id: openTestFileButton
-                    visible: !AppScale.isMobile
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: root.isCompact ? 160 : 200
-                    Layout.maximumWidth: Layout.preferredWidth
-                    Layout.preferredHeight: 48
-                    flat: false
-
-                    contentItem: Text {
-                        text: qsTr("Open Test File")
-                        font.pixelSize: AppScale.fs(16)
-                        font.weight: 600
-                        color: Theme.primary(root.Material.theme)
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                    }
-
-                    background: Rectangle {
-                        radius: height / 2
-                        color: "transparent"
-                        border.width: openTestFileButton.visualFocus ? 2 : 1
-                        border.color: openTestFileButton.visualFocus ? Theme.primary(root.Material.theme) : Theme.outline(root.Material.theme)
-                        scale: openTestFileButton.pressed ? 0.97 : 1.0
-                        Behavior on scale {
-                            NumberAnimation { duration: 100 }
-                        }
-
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: parent.radius
-                            color: Theme.primary(root.Material.theme)
-                            opacity: openTestFileButton.pressed ? 0.12 : (openTestFileButton.hovered ? 0.08 : 0)
-                        }
-                    }
-
-                    onClicked: {
-                        // Stop recording before opening the dialog
-                        _wasRecordingBeforeDialog = trainingAudioApi.isRecording;
-                        cancelPendingRecording();
-                        root.guidedState = root.gsIdle;
-                        if (_wasRecordingBeforeDialog) {
-                            console.log("Stopping recording before opening test file dialog");
-                            _isExiting = true; // Prevent automatic restart when stopping
-                            trainingAudioApi.stopRecording();
-                        }
-                    
-                        var testFolderPath = fileApi.getApplicationDirPath() + "/data/test";
-                        console.log("Opening test file dialog: " + testFolderPath);
-                        if (!fileApi.directoryExists(testFolderPath)) {
-                            console.warn("Directory does not exist: " + testFolderPath);
-                        } else {
-                            // Use FileApi helper to get properly formatted URL (crucial for Windows to avoid UNC timeout)
-                            testFileDialog.currentFolder = fileApi.getUrlFromPath(testFolderPath);
-                            testFileDialog.open();
-                        }
-                    }
-                }
             }
 
             FileDialog {

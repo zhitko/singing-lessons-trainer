@@ -7,7 +7,7 @@ import "../utils"
 
 ColumnLayout {
     id: root
-    spacing: compact ? 4 : 8
+    spacing: 2
 
     property string filePath: ""
     property string icon: Icons.faPlay
@@ -53,12 +53,12 @@ ColumnLayout {
     RoundButton {
         id: button
         Layout.alignment: Qt.AlignHCenter
-        Layout.preferredWidth: root.compact ? 52 : 64
-        Layout.preferredHeight: root.compact ? 52 : 64
+        Layout.preferredWidth: root.compact ? 44 : 52
+        Layout.preferredHeight: root.compact ? 44 : 52
         font.family: Icons.familySolid
         font.weight: Font.Black
         text: root.isPlaying ? Icons.faStop : root.icon
-        font.pixelSize: AppScale.fs(root.compact ? 16 : 20)
+        font.pixelSize: AppScale.fs(root.compact ? 14 : 16)
         Material.background: root.isPlaying ? Theme.errorContainer(Material.theme) : Theme.primaryContainer(Material.theme)
         Material.foreground: root.isPlaying ? Theme.onErrorContainer(Material.theme) : Theme.onPrimaryContainer(Material.theme)
 

@@ -249,6 +249,19 @@ ApplicationWindow {
                     }
                 }
 
+                NavigationItem {
+                    visible: window.trainingPageActive && !AppScale.isMobile
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: visible ? 72 : 0
+                    text: qsTr("Open")
+                    iconText: Icons.faFolderOpen
+                    onClicked: {
+                        const page = stackView.currentItem;
+                        if (page && page.openTestFile)
+                            page.openTestFile();
+                    }
+                }
+
                 Item {
                     Layout.fillHeight: true
                 }
@@ -360,6 +373,20 @@ ApplicationWindow {
                         iconText: modelData.icon
                         selected: window.currentSection === modelData.id
                         onClicked: window.navigateTo(modelData.id)
+                    }
+                }
+
+                NavigationItem {
+                    visible: window.trainingPageActive && !AppScale.isMobile
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    compact: AppScale.isCompact
+                    text: qsTr("Open")
+                    iconText: Icons.faFolderOpen
+                    onClicked: {
+                        const page = stackView.currentItem;
+                        if (page && page.openTestFile)
+                            page.openTestFile();
                     }
                 }
             }

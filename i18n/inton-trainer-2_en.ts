@@ -245,6 +245,10 @@
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <source>Open</source>
+        <translation>Open</translation>
+    </message>
+    <message>
         <location filename="../ui/Main.qml" line="187"/>
         <location filename="../ui/Main.qml" line="280"/>
         <source>Menu</source>
@@ -1308,13 +1312,13 @@ Check analysis settings (e.g. increase FFT length).</translation>
     </message>
     <message>
         <location filename="../ui/pages/TrainingPage.qml" line="876"/>
-        <source>Similarity</source>
-        <translation>Similarity</translation>
+        <source>Melodic Similarity</source>
+        <translation>Melodic Similarity</translation>
     </message>
     <message>
         <location filename="../ui/pages/TrainingPage.qml" line="931"/>
-        <source>Error</source>
-        <translation>Error</translation>
+        <source>Tonal Error</source>
+        <translation>Tonal Error</translation>
     </message>
     <message>
         <location filename="../ui/pages/TrainingPage.qml" line="1071"/>

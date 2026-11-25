@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Layouts
 import QtQuick.Controls.Material
 import "../utils"
 
@@ -23,7 +24,9 @@ Column {
     spacing: 0
 
     Text {
-        anchors.horizontalCenter: parent.horizontalCenter
+        width: root.width
+        horizontalAlignment: Text.AlignHCenter
+        wrapMode: Text.WordWrap
         text: root.label
         font.pixelSize: AppScale.fs(root.compact ? 11 : 13)
         font.weight: 600
@@ -31,33 +34,39 @@ Column {
         opacity: 0.7
     }
 
-    Text {
-        id: valueText
+    // Current score and the change versus the previous attempt, one line:
+    // 94%  (▲ +32%)
+    RowLayout {
         anchors.horizontalCenter: parent.horizontalCenter
-        text: root.hasValue ? Math.round(root.value) + "%" : "—"
-        font.pixelSize: AppScale.fs(root.compact ? 30 : 40)
-        font.weight: 700
-        color: root.ink
+        spacing: 6
 
-        Behavior on text {
-            SequentialAnimation {
-                NumberAnimation { target: valueText; property: "scale"; from: 1.0; to: 1.12; duration: 120; easing.type: Easing.OutQuad }
-                NumberAnimation { target: valueText; property: "scale"; from: 1.12; to: 1.0; duration: 180; easing.type: Easing.OutBack }
+        Text {
+            id: valueText
+            Layout.alignment: Qt.AlignBaseline
+            text: root.hasValue ? Math.round(root.value) + "%" : "—"
+            font.pixelSize: AppScale.fs(root.compact ? 20 : 26)
+            font.weight: 700
+            color: root.ink
+
+            Behavior on text {
+                SequentialAnimation {
+                    NumberAnimation { target: valueText; property: "scale"; from: 1.0; to: 1.12; duration: 120; easing.type: Easing.OutQuad }
+                    NumberAnimation { target: valueText; property: "scale"; from: 1.12; to: 1.0; duration: 180; easing.type: Easing.OutBack }
+                }
             }
         }
-    }
 
-    // Trend vs. the most recent previous attempt
-    Text {
-        anchors.horizontalCenter: parent.horizontalCenter
-        // Keep the row's height so both metric columns stay aligned
-        opacity: root.hasValue && root.hasPrevious ? 0.85 : 0
-        readonly property bool improved: root.lowerIsBetter ? root.delta < 0 : root.delta > 0
-        text: root.delta > 0 ? ("▲ +" + root.delta + "%") : (root.delta < 0 ? ("▼ " + root.delta + "%") : "● 0%")
-        font.pixelSize: AppScale.fs(12)
-        font.weight: 600
-        color: root.delta === 0 ? root.ink
-               : (improved ? Theme.scoreColor(100, Material.theme) : Theme.scoreColor(1, Material.theme))
+        Text {
+            Layout.alignment: Qt.AlignBaseline
+            visible: root.hasValue && root.hasPrevious
+            readonly property bool improved: root.lowerIsBetter ? root.delta < 0 : root.delta > 0
+            text: "(" + (root.delta > 0 ? ("▲ +" + root.delta + "%")
+                         : (root.delta < 0 ? ("▼ " + root.delta + "%") : "● 0%")) + ")"
+            font.pixelSize: AppScale.fs(root.compact ? 11 : 13)
+            font.weight: 600
+            color: root.delta === 0 ? root.ink
+                   : (improved ? Theme.scoreColor(100, Material.theme) : Theme.scoreColor(1, Material.theme))
+        }
     }
 
     // Previous attempts: most recent first, older ones smaller and fainter

@@ -36,6 +36,9 @@ Column {
     readonly property color chartNucleus: "#7A8294"
     readonly property color chartInk: "#74777F"
     readonly property real plotRadius: 12
+    // Space above the plot panel. Training keeps this small so the curves
+    // sit close to the result card.
+    property real plotTopPadding: 10
     property bool showYAxis: true
     // Shade the area between the first two datasets (e.g. reference vs. user)
     // so deviations between the curves stand out.
@@ -151,7 +154,7 @@ Column {
 
             // Reserve space for Y axis and paddings
             var leftMargin = root.showYAxis ? 40 : 0;
-            var topPadding = 10;
+            var topPadding = root.plotTopPadding;
             var bottomPadding = (root.cueNLabels && root.cueNLabels.length > 0) ? 40 : 20;
             var graphWidth = canvas.width - leftMargin;
             var graphHeight = canvas.height - topPadding - bottomPadding;
