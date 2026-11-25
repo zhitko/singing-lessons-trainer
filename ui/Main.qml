@@ -291,6 +291,8 @@ ApplicationWindow {
                     id: backButton
                     visible: stackView.depth > 1
                     iconText: Icons.faArrowLeft
+                    iconPixelSize: AppScale.fs(26)
+                    buttonSize: 52
                     iconColor: Theme.onSurface(Material.theme)
                     toolTipText: qsTr("Back")
                     onClicked: stackView.pop()

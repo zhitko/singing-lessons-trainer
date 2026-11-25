@@ -11,11 +11,14 @@ ToolButton {
     property string toolTipText: ""
     property color iconColor: Theme.onSurfaceVariant(Material.theme)
     property color containerColor: "transparent"
+    property int iconPixelSize: AppScale.fs(18)
+    property int buttonSize: 44
 
     text: iconText
     font.family: Icons.familySolid
     font.weight: Font.Black
-    font.pixelSize: AppScale.fs(18)
+    font.bold: true
+    font.pixelSize: iconPixelSize
     hoverEnabled: true
     Accessible.name: toolTipText
     ToolTip.visible: toolTipText !== "" && hovered && !AppScale.isMobile
@@ -31,8 +34,8 @@ ToolButton {
     }
 
     background: Rectangle {
-        implicitWidth: 44
-        implicitHeight: 44
+        implicitWidth: root.buttonSize
+        implicitHeight: root.buttonSize
         radius: width / 2
         color: root.containerColor
 
